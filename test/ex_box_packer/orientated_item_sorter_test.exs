@@ -3,7 +3,13 @@ defmodule ExBoxPacker.OrientatedItemSorterTest do
   alias ExBoxPacker.{OrientatedItem, OrientatedItemSorter, SimpleItem}
 
   defp oi(w, l, d),
-    do: OrientatedItem.new(%SimpleItem{description: "i", width: w, length: l, depth: d, weight: 1}, w, l, d)
+    do:
+      OrientatedItem.new(
+        %SimpleItem{description: "i", width: w, length: l, depth: d, weight: 1},
+        w,
+        l,
+        d
+      )
 
   test "prefers an exact width fit" do
     ctx = %{width_left: 10, length_left: 100, depth_left: 100}
