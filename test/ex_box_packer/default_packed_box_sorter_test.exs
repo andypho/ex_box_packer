@@ -51,4 +51,18 @@ defmodule ExBoxPacker.DefaultPackedBoxSorterTest do
     assert DefaultPackedBoxSorter.compare(tight, loose) == -1
     assert DefaultPackedBoxSorter.compare(loose, tight) == 1
   end
+
+  test "equal count and utilisation falls back to higher used volume first" do
+    # both 1 item, both 20.0% utilisation, but different used volume (200 vs 400)
+    a = packed(box(10, 10, 10), [pi(5, 5, 8)])   # used 200, inner 1000 -> 20.0%
+    b = packed(box(20, 10, 10), [pi(10, 5, 8)])  # used 400, inner 2000 -> 20.0%
+    assert DefaultPackedBoxSorter.compare(b, a) == -1
+    assert DefaultPackedBoxSorter.compare(a, b) == 1
+  end
+
+  test "identical packed boxes compare equal" do
+    a = packed(box(10, 10, 10), [pi(5, 5, 5)])
+    b = packed(box(10, 10, 10), [pi(5, 5, 5)])
+    assert DefaultPackedBoxSorter.compare(a, b) == 0
+  end
 end
