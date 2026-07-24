@@ -4,7 +4,7 @@ defmodule ExBoxPacker.PackedBox do
   utilisation accessors. Port of BoxPacker's `PackedBox`.
   """
 
-  alias ExBoxPacker.{Box, PackedItemList}
+  alias ExBoxPacker.{Box, PackedItemList, Rounding}
 
   @enforce_keys [:box, :items]
   defstruct [:box, :items]
@@ -53,7 +53,7 @@ defmodule ExBoxPacker.PackedBox do
 
   @spec volume_utilisation(t()) :: float()
   def volume_utilisation(%__MODULE__{} = pb) do
-    Float.round(used_volume(pb) / max(inner_volume(pb), 1) * 100, 1)
+    Rounding.round_half_up(used_volume(pb) / max(inner_volume(pb), 1) * 100, 1)
   end
 
   @doc """

@@ -4,7 +4,7 @@ defmodule ExBoxPacker.PackedBoxList do
   `PackedBoxList`. Iteration/`to_list` order is defined by the configured `PackedBoxSorter`.
   """
 
-  alias ExBoxPacker.{DefaultPackedBoxSorter, PackedBox, PackedItemList}
+  alias ExBoxPacker.{DefaultPackedBoxSorter, PackedBox, PackedItemList, Rounding}
 
   defstruct boxes: [], sorter: DefaultPackedBoxSorter
 
@@ -52,7 +52,7 @@ defmodule ExBoxPacker.PackedBoxList do
         acc + :math.pow(PackedBox.weight(box) - mean, 2)
       end)
 
-    Float.round(sum_sq / length(boxes), 1)
+    Rounding.round_half_up(sum_sq / length(boxes), 1)
   end
 
   @spec volume_utilisation(t()) :: float()
@@ -62,6 +62,6 @@ defmodule ExBoxPacker.PackedBoxList do
         {iv + PackedItemList.volume(box.items), bv + PackedBox.inner_volume(box)}
       end)
 
-    Float.round(item_volume / box_volume * 100, 1)
+    Rounding.round_half_up(item_volume / box_volume * 100, 1)
   end
 end
