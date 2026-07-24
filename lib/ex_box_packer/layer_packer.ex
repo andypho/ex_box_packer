@@ -42,6 +42,8 @@ defmodule ExBoxPacker.LayerPacker do
           boolean(),
           OrientatedItem.t() | nil
         ) :: {PackedLayer.t(), [Item.t()], PackedItemList.t()}
+  # 12 parameters is a faithful 1:1 port of BoxPacker's LayerPacker::packLayer signature.
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def pack_layer(
         opts,
         items,

@@ -30,7 +30,11 @@ defmodule ExBoxPacker.LayerStabiliser do
     new_layer =
       Enum.reduce(PackedLayer.items(old_layer), PackedLayer.new(), fn item, layer ->
         new_z = item.z - old_z_start + current_z
-        PackedLayer.insert(layer, PackedItem.new(item.item, item.x, item.y, new_z, item.width, item.length, item.depth))
+
+        PackedLayer.insert(
+          layer,
+          PackedItem.new(item.item, item.x, item.y, new_z, item.width, item.length, item.depth)
+        )
       end)
 
     restack(rest, current_z + PackedLayer.depth(new_layer), [new_layer | acc])

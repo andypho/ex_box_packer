@@ -3,7 +3,15 @@ defmodule ExBoxPacker.LayerStabiliserTest do
   alias ExBoxPacker.{LayerStabiliser, PackedItem, PackedLayer, SimpleItem}
 
   defp pi(x, y, z, w, l, d) do
-    PackedItem.new(%SimpleItem{description: "i", width: w, length: l, depth: d, weight: 1}, x, y, z, w, l, d)
+    PackedItem.new(
+      %SimpleItem{description: "i", width: w, length: l, depth: d, weight: 1},
+      x,
+      y,
+      z,
+      w,
+      l,
+      d
+    )
   end
 
   test "reorders layers largest-footprint first and restacks z from 0" do

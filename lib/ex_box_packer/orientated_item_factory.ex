@@ -91,7 +91,16 @@ defmodule ExBoxPacker.OrientatedItemFactory do
           boolean(),
           boolean()
         ) :: OrientatedItem.t() | nil
-  def best_orientation(box, item, prev_item, {wl, ll, dl} = space, next_items, row_length, single_pass?, consider_stability?) do
+  def best_orientation(
+        box,
+        item,
+        prev_item,
+        {wl, ll, dl} = space,
+        next_items,
+        row_length,
+        single_pass?,
+        consider_stability?
+      ) do
     possible = possible_orientations(item, prev_item, space)
     usable = if consider_stability?, do: usable_orientations(box, item, possible), else: possible
 
