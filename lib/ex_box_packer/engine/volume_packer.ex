@@ -1,4 +1,4 @@
-defmodule ExBoxPacker.VolumePacker do
+defmodule ExBoxPacker.Engine.VolumePacker do
   @moduledoc """
   Packs items into a single box. Functional port of BoxPacker's `VolumePacker`. Tries both
   box footprint rotations (unless single-pass or the item set forbids rotation) and each
@@ -6,18 +6,9 @@ defmodule ExBoxPacker.VolumePacker do
   full pack short-circuits; otherwise highest volume utilisation).
   """
 
-  alias ExBoxPacker.{
-    Box,
-    Item,
-    ItemList,
-    LayerPacker,
-    LayerStabiliser,
-    OrientatedItemFactory,
-    PackedBox,
-    PackedItem,
-    PackedItemList,
-    PackedLayer
-  }
+  alias ExBoxPacker.{Box, Item}
+  alias ExBoxPacker.Engine.{ItemList, LayerPacker, LayerStabiliser, OrientatedItemFactory}
+  alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList, PackedLayer}
 
   @doc """
   Pack `items` into `box`. `opts`: `single_pass?` (default false), `strict_ordering?`

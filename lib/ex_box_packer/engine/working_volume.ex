@@ -1,4 +1,4 @@
-defmodule ExBoxPacker.WorkingVolume do
+defmodule ExBoxPacker.Engine.WorkingVolume do
   @moduledoc false
 
   @enforce_keys [:width, :length, :depth, :max_weight]
@@ -12,7 +12,7 @@ defmodule ExBoxPacker.WorkingVolume do
         }
 end
 
-defimpl ExBoxPacker.Box, for: ExBoxPacker.WorkingVolume do
+defimpl ExBoxPacker.Box, for: ExBoxPacker.Engine.WorkingVolume do
   def reference(%{width: w, length: l, depth: d}), do: "Working Volume #{w}x#{l}x#{d}"
   def outer_width(v), do: v.width
   def outer_length(v), do: v.length

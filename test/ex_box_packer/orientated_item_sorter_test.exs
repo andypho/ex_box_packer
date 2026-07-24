@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.OrientatedItemSorterTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{OrientatedItem, OrientatedItemSorter, SimpleItem}
+  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemSorter}
+  alias ExBoxPacker.SimpleItem
 
   defp oi(w, l, d),
     do:

@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.PackedLayerTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{PackedItem, PackedLayer, SimpleItem}
+  alias ExBoxPacker.Result.{PackedItem, PackedLayer}
+  alias ExBoxPacker.SimpleItem
 
   defp at(x, y, z, w, l, d, weight) do
     PackedItem.new(

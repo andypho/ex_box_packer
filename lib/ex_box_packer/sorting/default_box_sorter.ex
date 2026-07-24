@@ -1,8 +1,8 @@
-defmodule ExBoxPacker.DefaultBoxSorter do
+defmodule ExBoxPacker.Sorting.DefaultBoxSorter do
   @moduledoc "Default box ordering: inner volume asc, then empty weight asc, then usable capacity asc."
-  @behaviour ExBoxPacker.BoxSorter
+  @behaviour ExBoxPacker.Sorting.BoxSorter
 
-  import ExBoxPacker.ItemSorter, only: [cmp: 2]
+  import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
   alias ExBoxPacker.Box
 
   @impl true

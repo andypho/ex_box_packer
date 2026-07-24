@@ -1,4 +1,4 @@
-defmodule ExBoxPacker.OrientatedItem do
+defmodule ExBoxPacker.Engine.OrientatedItem do
   @moduledoc false
 
   alias ExBoxPacker.Item
@@ -40,6 +40,6 @@ defmodule ExBoxPacker.OrientatedItem do
   end
 end
 
-defimpl String.Chars, for: ExBoxPacker.OrientatedItem do
+defimpl String.Chars, for: ExBoxPacker.Engine.OrientatedItem do
   def to_string(%{width: w, length: l, depth: d}), do: "#{w}|#{l}|#{d}"
 end

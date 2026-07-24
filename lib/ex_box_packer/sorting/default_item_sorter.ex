@@ -1,8 +1,8 @@
-defmodule ExBoxPacker.DefaultItemSorter do
+defmodule ExBoxPacker.Sorting.DefaultItemSorter do
   @moduledoc "Default item ordering: volume desc, then weight desc, then description asc."
-  @behaviour ExBoxPacker.ItemSorter
+  @behaviour ExBoxPacker.Sorting.ItemSorter
 
-  import ExBoxPacker.ItemSorter, only: [cmp: 2]
+  import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
   alias ExBoxPacker.Item
 
   @impl true

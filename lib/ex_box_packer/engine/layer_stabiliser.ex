@@ -1,8 +1,8 @@
-defmodule ExBoxPacker.LayerStabiliser do
+defmodule ExBoxPacker.Engine.LayerStabiliser do
   @moduledoc false
 
-  import ExBoxPacker.ItemSorter, only: [cmp: 2]
-  alias ExBoxPacker.{PackedItem, PackedLayer}
+  import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
+  alias ExBoxPacker.Result.{PackedItem, PackedLayer}
 
   @spec stabilise([PackedLayer.t()]) :: [PackedLayer.t()]
   def stabilise(layers) do

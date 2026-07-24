@@ -1,7 +1,8 @@
-defmodule ExBoxPacker.BoxList do
+defmodule ExBoxPacker.Engine.BoxList do
   @moduledoc false
 
-  alias ExBoxPacker.{Box, DefaultBoxSorter}
+  alias ExBoxPacker.Box
+  alias ExBoxPacker.Sorting.DefaultBoxSorter
 
   @spec sort([Box.t()], module()) :: [Box.t()]
   def sort(boxes, sorter \\ DefaultBoxSorter) do

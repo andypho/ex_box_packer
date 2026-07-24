@@ -7,23 +7,23 @@ defmodule ExBoxPacker do
     deps: [],
     exports: [
       Packer,
-      VolumePacker,
+      Engine.VolumePacker,
       Item,
       Box,
       SimpleItem,
       SimpleBox,
       Rotation,
-      PackedBox,
-      PackedBoxList,
-      PackedItem,
-      PackedItemList,
+      Result.PackedBox,
+      Result.PackedBoxList,
+      Result.PackedItem,
+      Result.PackedItemList,
       NoBoxesAvailableError,
-      ItemSorter,
-      DefaultItemSorter,
-      BoxSorter,
-      DefaultBoxSorter,
-      PackedBoxSorter,
-      DefaultPackedBoxSorter
+      Sorting.ItemSorter,
+      Sorting.DefaultItemSorter,
+      Sorting.BoxSorter,
+      Sorting.DefaultBoxSorter,
+      Sorting.PackedBoxSorter,
+      Sorting.DefaultPackedBoxSorter
     ]
 
   @doc """

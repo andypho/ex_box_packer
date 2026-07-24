@@ -1,6 +1,6 @@
 defmodule ExBoxPacker.RoundingTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.Rounding
+  alias ExBoxPacker.Engine.Rounding
 
   test "rounds half away from zero to 1 dp (matches PHP round/2)" do
     assert Rounding.round_half_up(0.15, 1) == 0.2

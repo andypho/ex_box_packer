@@ -1,19 +1,12 @@
 defmodule ExBoxPacker.PackerTest do
   use ExUnit.Case, async: true
 
-  alias ExBoxPacker.{
-    NoBoxesAvailableError,
-    PackedBox,
-    PackedBoxList,
-    PackedItemList,
-    Packer,
-    SimpleBox,
-    SimpleItem
-  }
+  alias ExBoxPacker.{NoBoxesAvailableError, Packer, SimpleBox, SimpleItem}
+  alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
 
   # Reverse-reference sorter: prefers the box whose reference sorts LAST.
   defmodule ReverseRefSorter do
-    @behaviour ExBoxPacker.PackedBoxSorter
+    @behaviour ExBoxPacker.Sorting.PackedBoxSorter
     @impl true
     def compare(a, b) do
       cond do

@@ -1,15 +1,9 @@
-defmodule ExBoxPacker.LayerPacker do
+defmodule ExBoxPacker.Engine.LayerPacker do
   @moduledoc false
 
-  alias ExBoxPacker.{
-    Box,
-    Item,
-    OrientatedItem,
-    OrientatedItemFactory,
-    PackedItem,
-    PackedItemList,
-    PackedLayer
-  }
+  alias ExBoxPacker.{Box, Item}
+  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory}
+  alias ExBoxPacker.Result.{PackedItem, PackedItemList, PackedLayer}
 
   @typedoc "Options: box, single_pass?, strict_ordering?"
   @type opts :: %{box: Box.t(), single_pass?: boolean(), strict_ordering?: boolean()}

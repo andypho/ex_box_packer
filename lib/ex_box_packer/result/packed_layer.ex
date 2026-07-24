@@ -1,7 +1,8 @@
-defmodule ExBoxPacker.PackedLayer do
+defmodule ExBoxPacker.Result.PackedLayer do
   @moduledoc false
 
-  alias ExBoxPacker.{Item, PackedItem}
+  alias ExBoxPacker.Item
+  alias ExBoxPacker.Result.PackedItem
 
   import Kernel, except: [length: 1]
 

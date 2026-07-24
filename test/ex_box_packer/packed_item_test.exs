@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.PackedItemTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{PackedItem, SimpleItem}
+  alias ExBoxPacker.Result.PackedItem
+  alias ExBoxPacker.SimpleItem
 
   test "new/7 stores placement and computes volume" do
     item = %SimpleItem{description: "x", width: 2, length: 3, depth: 4, weight: 1}

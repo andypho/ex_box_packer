@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.PackedBoxTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{PackedBox, PackedItem, PackedItemList, SimpleBox, SimpleItem}
+  alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList}
+  alias ExBoxPacker.{SimpleBox, SimpleItem}
 
   defp box do
     %SimpleBox{

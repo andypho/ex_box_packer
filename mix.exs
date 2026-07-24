@@ -53,7 +53,7 @@ defmodule ExBoxPacker.MixProject do
       main: "ExBoxPacker",
       extras: ["README.md"],
       groups_for_modules: [
-        Packing: [ExBoxPacker.Packer, ExBoxPacker.VolumePacker],
+        Packing: [ExBoxPacker.Packer, ExBoxPacker.Engine.VolumePacker],
         "Items & Boxes": [
           ExBoxPacker.Item,
           ExBoxPacker.Box,
@@ -62,18 +62,18 @@ defmodule ExBoxPacker.MixProject do
           ExBoxPacker.Rotation
         ],
         Results: [
-          ExBoxPacker.PackedBox,
-          ExBoxPacker.PackedBoxList,
-          ExBoxPacker.PackedItem,
-          ExBoxPacker.PackedItemList
+          ExBoxPacker.Result.PackedBox,
+          ExBoxPacker.Result.PackedBoxList,
+          ExBoxPacker.Result.PackedItem,
+          ExBoxPacker.Result.PackedItemList
         ],
         Sorting: [
-          ExBoxPacker.ItemSorter,
-          ExBoxPacker.DefaultItemSorter,
-          ExBoxPacker.BoxSorter,
-          ExBoxPacker.DefaultBoxSorter,
-          ExBoxPacker.PackedBoxSorter,
-          ExBoxPacker.DefaultPackedBoxSorter
+          ExBoxPacker.Sorting.ItemSorter,
+          ExBoxPacker.Sorting.DefaultItemSorter,
+          ExBoxPacker.Sorting.BoxSorter,
+          ExBoxPacker.Sorting.DefaultBoxSorter,
+          ExBoxPacker.Sorting.PackedBoxSorter,
+          ExBoxPacker.Sorting.DefaultPackedBoxSorter
         ],
         Errors: [ExBoxPacker.NoBoxesAvailableError]
       ]

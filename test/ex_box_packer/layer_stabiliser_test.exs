@@ -1,6 +1,8 @@
 defmodule ExBoxPacker.LayerStabiliserTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{LayerStabiliser, PackedItem, PackedLayer, SimpleItem}
+  alias ExBoxPacker.Engine.LayerStabiliser
+  alias ExBoxPacker.Result.{PackedItem, PackedLayer}
+  alias ExBoxPacker.SimpleItem
 
   defp pi(x, y, z, w, l, d) do
     PackedItem.new(

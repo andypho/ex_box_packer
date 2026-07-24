@@ -1,7 +1,8 @@
-defmodule ExBoxPacker.OrientatedItemFactory do
+defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   @moduledoc false
 
-  alias ExBoxPacker.{Box, Item, OrientatedItem}
+  alias ExBoxPacker.{Box, Item}
+  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemSorter}
 
   @type dims :: {integer(), integer(), integer()}
 
@@ -116,7 +117,7 @@ defmodule ExBoxPacker.OrientatedItemFactory do
         }
 
         orientations
-        |> ExBoxPacker.OrientatedItemSorter.sort(ctx)
+        |> OrientatedItemSorter.sort(ctx)
         |> hd()
     end
   end

@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.WorkingVolumeTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{Box, WorkingVolume}
+  alias ExBoxPacker.Box
+  alias ExBoxPacker.Engine.WorkingVolume
 
   test "implements Box with equal inner/outer dims and zero empty weight" do
     v = %WorkingVolume{width: 10, length: 20, depth: 30, max_weight: 500}

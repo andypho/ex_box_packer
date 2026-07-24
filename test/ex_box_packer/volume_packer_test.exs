@@ -1,6 +1,8 @@
 defmodule ExBoxPacker.VolumePackerTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{PackedBox, PackedItemList, SimpleBox, SimpleItem, VolumePacker}
+  alias ExBoxPacker.Engine.VolumePacker
+  alias ExBoxPacker.Result.{PackedBox, PackedItemList}
+  alias ExBoxPacker.{SimpleBox, SimpleItem}
 
   defp box(iw, il, id, mw),
     do: %SimpleBox{

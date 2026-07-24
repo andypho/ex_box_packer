@@ -1,4 +1,4 @@
-defmodule ExBoxPacker.Rounding do
+defmodule ExBoxPacker.Engine.Rounding do
   @moduledoc false
 
   @doc "Round `value` to `precision` decimal places, half away from zero (PHP `round/2`)."

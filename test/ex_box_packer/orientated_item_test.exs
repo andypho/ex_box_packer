@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.OrientatedItemTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{OrientatedItem, SimpleItem}
+  alias ExBoxPacker.Engine.OrientatedItem
+  alias ExBoxPacker.SimpleItem
 
   defp item(w, l, d), do: %SimpleItem{description: "t", width: w, length: l, depth: d, weight: 1}
 

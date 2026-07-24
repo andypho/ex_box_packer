@@ -1,10 +1,12 @@
-defmodule ExBoxPacker.PackedBox do
+defmodule ExBoxPacker.Result.PackedBox do
   @moduledoc """
   A box together with the items packed into it, plus computed weight, space and
   utilisation accessors. Port of BoxPacker's `PackedBox`.
   """
 
-  alias ExBoxPacker.{Box, PackedItemList, Rounding}
+  alias ExBoxPacker.Box
+  alias ExBoxPacker.Engine.Rounding
+  alias ExBoxPacker.Result.PackedItemList
 
   @enforce_keys [:box, :items]
   defstruct [:box, :items]

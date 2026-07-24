@@ -1,14 +1,9 @@
 defmodule ExBoxPacker.DefaultPackedBoxSorterTest do
   use ExUnit.Case, async: true
 
-  alias ExBoxPacker.{
-    DefaultPackedBoxSorter,
-    PackedBox,
-    PackedItem,
-    PackedItemList,
-    SimpleBox,
-    SimpleItem
-  }
+  alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList}
+  alias ExBoxPacker.{SimpleBox, SimpleItem}
+  alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
 
   defp box(iw, il, id) do
     %SimpleBox{

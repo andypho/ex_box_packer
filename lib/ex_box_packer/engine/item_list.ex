@@ -1,7 +1,8 @@
-defmodule ExBoxPacker.ItemList do
+defmodule ExBoxPacker.Engine.ItemList do
   @moduledoc false
 
-  alias ExBoxPacker.{DefaultItemSorter, Item, SimpleItem}
+  alias ExBoxPacker.{Item, SimpleItem}
+  alias ExBoxPacker.Sorting.DefaultItemSorter
 
   @spec from_items([Item.t()], module()) :: [Item.t()]
   def from_items(items, sorter \\ DefaultItemSorter) do

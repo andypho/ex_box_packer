@@ -1,8 +1,8 @@
-defmodule ExBoxPacker.OrientatedItemSorter do
+defmodule ExBoxPacker.Engine.OrientatedItemSorter do
   @moduledoc false
 
-  import ExBoxPacker.ItemSorter, only: [cmp: 2]
-  alias ExBoxPacker.{OrientatedItem, OrientatedItemFactory, VolumePacker, WorkingVolume}
+  import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
+  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory, VolumePacker, WorkingVolume}
 
   # Look-ahead simulation caps the number of following items considered, matching
   # BoxPacker's `topN(8)` to keep the recursive partial pack bounded.

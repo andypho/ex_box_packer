@@ -1,4 +1,4 @@
-defmodule ExBoxPacker.ItemSorter do
+defmodule ExBoxPacker.Sorting.ItemSorter do
   @moduledoc "Behaviour for ordering items before packing (analog of BoxPacker's `ItemSorter`)."
 
   @doc "Return a negative int if `a` sorts before `b`, positive if after, 0 if equal."

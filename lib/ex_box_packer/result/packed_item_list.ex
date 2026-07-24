@@ -1,10 +1,11 @@
-defmodule ExBoxPacker.PackedItemList do
+defmodule ExBoxPacker.Result.PackedItemList do
   @moduledoc """
-  A collection of `ExBoxPacker.PackedItem` with cached total weight and volume.
+  A collection of `ExBoxPacker.Result.PackedItem` with cached total weight and volume.
   Port of BoxPacker's `PackedItemList`.
   """
 
-  alias ExBoxPacker.{Item, PackedItem}
+  alias ExBoxPacker.Item
+  alias ExBoxPacker.Result.PackedItem
 
   defstruct items: [], weight: 0, volume: 0
 

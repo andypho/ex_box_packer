@@ -1,10 +1,12 @@
-defmodule ExBoxPacker.PackedBoxList do
+defmodule ExBoxPacker.Result.PackedBoxList do
   @moduledoc """
-  A collection of `ExBoxPacker.PackedBox` with aggregate statistics. Port of BoxPacker's
+  A collection of `ExBoxPacker.Result.PackedBox` with aggregate statistics. Port of BoxPacker's
   `PackedBoxList`. Iteration/`to_list` order is defined by the configured `PackedBoxSorter`.
   """
 
-  alias ExBoxPacker.{DefaultPackedBoxSorter, PackedBox, PackedItemList, Rounding}
+  alias ExBoxPacker.Engine.Rounding
+  alias ExBoxPacker.Result.{PackedBox, PackedItemList}
+  alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
 
   defstruct boxes: [], sorter: DefaultPackedBoxSorter
 

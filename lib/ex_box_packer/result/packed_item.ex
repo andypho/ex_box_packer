@@ -1,4 +1,4 @@
-defmodule ExBoxPacker.PackedItem do
+defmodule ExBoxPacker.Result.PackedItem do
   @moduledoc """
   An item placed inside a box: back-left-bottom corner at `(x, y, z)` with the given
   post-rotation `width`/`length`/`depth`. `volume` is precomputed. Port of BoxPacker's `PackedItem`.

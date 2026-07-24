@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.ItemListTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{ItemList, SimpleItem}
+  alias ExBoxPacker.Engine.ItemList
+  alias ExBoxPacker.SimpleItem
 
   defp item(desc, w, l, d, weight, qty \\ 1),
     do: %SimpleItem{

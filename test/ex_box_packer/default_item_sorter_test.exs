@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.DefaultItemSorterTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{DefaultItemSorter, SimpleItem}
+  alias ExBoxPacker.SimpleItem
+  alias ExBoxPacker.Sorting.DefaultItemSorter
 
   defp item(desc, w, l, d, weight),
     do: %SimpleItem{description: desc, width: w, length: l, depth: d, weight: weight}

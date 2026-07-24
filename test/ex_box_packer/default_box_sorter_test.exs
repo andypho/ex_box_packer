@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.DefaultBoxSorterTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{DefaultBoxSorter, SimpleBox}
+  alias ExBoxPacker.SimpleBox
+  alias ExBoxPacker.Sorting.DefaultBoxSorter
 
   defp box(ref, iw, il, id, empty, max) do
     %SimpleBox{

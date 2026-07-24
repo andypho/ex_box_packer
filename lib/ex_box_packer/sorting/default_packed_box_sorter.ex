@@ -1,9 +1,9 @@
-defmodule ExBoxPacker.DefaultPackedBoxSorter do
+defmodule ExBoxPacker.Sorting.DefaultPackedBoxSorter do
   @moduledoc "Default packed-box ordering: item count desc, then volume utilisation desc, then used volume desc."
-  @behaviour ExBoxPacker.PackedBoxSorter
+  @behaviour ExBoxPacker.Sorting.PackedBoxSorter
 
-  import ExBoxPacker.ItemSorter, only: [cmp: 2]
-  alias ExBoxPacker.{PackedBox, PackedItemList}
+  import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
+  alias ExBoxPacker.Result.{PackedBox, PackedItemList}
 
   @impl true
   def compare(a, b) do

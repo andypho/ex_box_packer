@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.OrientatedItemFactoryTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{OrientatedItem, OrientatedItemFactory, SimpleBox, SimpleItem}
+  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory}
+  alias ExBoxPacker.{SimpleBox, SimpleItem}
 
   @big 1_000_000_000
 

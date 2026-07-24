@@ -13,18 +13,10 @@ defmodule ExBoxPacker.Packer do
   items are added in later milestones.
   """
 
-  alias ExBoxPacker.{
-    Box,
-    BoxList,
-    DefaultPackedBoxSorter,
-    Item,
-    ItemList,
-    NoBoxesAvailableError,
-    PackedBox,
-    PackedBoxList,
-    PackedItemList,
-    VolumePacker
-  }
+  alias ExBoxPacker.{Box, Item, NoBoxesAvailableError}
+  alias ExBoxPacker.Engine.{BoxList, ItemList, VolumePacker}
+  alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
+  alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
 
   @doc "Pack `items` into the fewest `boxes`. Returns `{:ok, PackedBoxList}` or `{:error, NoBoxesAvailableError}`."
   @spec pack([Box.t()], [Item.t()], keyword()) ::
