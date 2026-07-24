@@ -1,9 +1,5 @@
 defmodule ExBoxPacker.LayerStabiliser do
-  @moduledoc """
-  Reorders packed layers so larger-footprint (then deeper) layers sit at the bottom, and
-  recomputes each item's `z` so layers stack contiguously from `z = 0`. Port of
-  BoxPacker's `LayerStabiliser`.
-  """
+  @moduledoc false
 
   import ExBoxPacker.ItemSorter, only: [cmp: 2]
   alias ExBoxPacker.{PackedItem, PackedLayer}

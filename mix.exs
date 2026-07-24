@@ -49,7 +49,32 @@ defmodule ExBoxPacker.MixProject do
   defp docs do
     [
       main: "ExBoxPacker",
-      extras: ["README.md"]
+      extras: ["README.md"],
+      groups_for_modules: [
+        Packing: [ExBoxPacker.Packer, ExBoxPacker.VolumePacker],
+        "Items & Boxes": [
+          ExBoxPacker.Item,
+          ExBoxPacker.Box,
+          ExBoxPacker.SimpleItem,
+          ExBoxPacker.SimpleBox,
+          ExBoxPacker.Rotation
+        ],
+        Results: [
+          ExBoxPacker.PackedBox,
+          ExBoxPacker.PackedBoxList,
+          ExBoxPacker.PackedItem,
+          ExBoxPacker.PackedItemList
+        ],
+        Sorting: [
+          ExBoxPacker.ItemSorter,
+          ExBoxPacker.DefaultItemSorter,
+          ExBoxPacker.BoxSorter,
+          ExBoxPacker.DefaultBoxSorter,
+          ExBoxPacker.PackedBoxSorter,
+          ExBoxPacker.DefaultPackedBoxSorter
+        ],
+        Errors: [ExBoxPacker.NoBoxesAvailableError]
+      ]
     ]
   end
 end

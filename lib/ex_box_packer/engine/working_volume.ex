@@ -1,9 +1,5 @@
 defmodule ExBoxPacker.WorkingVolume do
-  @moduledoc """
-  A `Box` representing a temporary packable region (e.g. the remaining space explored
-  during look-ahead). Inner dimensions equal outer dimensions and empty weight is 0.
-  Port of BoxPacker's `WorkingVolume`.
-  """
+  @moduledoc false
 
   @enforce_keys [:width, :length, :depth, :max_weight]
   defstruct [:width, :length, :depth, :max_weight]

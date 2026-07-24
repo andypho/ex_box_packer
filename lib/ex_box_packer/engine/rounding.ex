@@ -1,14 +1,5 @@
 defmodule ExBoxPacker.Rounding do
-  @moduledoc """
-  PHP-compatible rounding.
-
-  PHP's `round($x, $p)` rounds half **away from zero** and compensates for
-  floating-point representation error ("pre-rounding"). Elixir's `Float.round/2`
-  rounds the stored IEEE-754 value and can differ at `.x5` boundaries (e.g. `0.15`
-  rounds to `0.1` in Elixir but `0.2` in PHP). This module reproduces PHP's result
-  so utilisation/variance values match the reference implementation for golden
-  fidelity.
-  """
+  @moduledoc false
 
   @doc "Round `value` to `precision` decimal places, half away from zero (PHP `round/2`)."
   @spec round_half_up(number(), non_neg_integer()) :: float()

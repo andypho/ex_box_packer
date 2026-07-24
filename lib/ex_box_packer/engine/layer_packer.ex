@@ -1,12 +1,5 @@
 defmodule ExBoxPacker.LayerPacker do
-  @moduledoc """
-  Packs a single horizontal layer (and its stacked/lengthwise sub-fills). Functional port
-  of BoxPacker's `LayerPacker::packLayer`. `pack_layer/12` takes and returns explicit state
-  so the caller sees the reduced item list.
-
-  The working item list is a plain list in extract order (largest-first). Returns
-  `{packed_layer, remaining_items, packed_item_list}`.
-  """
+  @moduledoc false
 
   alias ExBoxPacker.{
     Box,

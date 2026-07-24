@@ -1,5 +1,5 @@
 defmodule ExBoxPacker.BoxList do
-  @moduledoc "Helpers for ordering the catalog of candidate boxes."
+  @moduledoc false
 
   alias ExBoxPacker.{Box, DefaultBoxSorter}
 

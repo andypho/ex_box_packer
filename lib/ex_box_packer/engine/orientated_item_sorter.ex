@@ -1,20 +1,5 @@
 defmodule ExBoxPacker.OrientatedItemSorter do
-  @moduledoc """
-  Orders candidate orientations best-first. Port of BoxPacker's `OrientatedItemSorter`.
-  Priority: exact fit in width, then length, then depth; then a look-ahead tiebreaker
-  (prefer leaving room for the next items); then smallest `min(width_left, length_left)`
-  gap; then smallest surface footprint.
-
-  Context is a map:
-
-      %{
-        box: Box.t(),
-        width_left: integer(), length_left: integer(), depth_left: integer(),
-        next_items: [Item.t()],   # remaining items after the current one (extract order)
-        row_length: integer(),
-        single_pass?: boolean()
-      }
-  """
+  @moduledoc false
 
   import ExBoxPacker.ItemSorter, only: [cmp: 2]
   alias ExBoxPacker.{OrientatedItem, OrientatedItemFactory, VolumePacker, WorkingVolume}

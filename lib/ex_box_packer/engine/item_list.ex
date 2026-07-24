@@ -1,11 +1,5 @@
 defmodule ExBoxPacker.ItemList do
-  @moduledoc """
-  Helpers for building and ordering the working list of items.
-
-  `from_items/2` expands the `quantity` field of `ExBoxPacker.SimpleItem` into individual
-  units (each with `quantity: 1`); any other item type is treated as a single unit. The
-  result is then sorted by the given sorter.
-  """
+  @moduledoc false
 
   alias ExBoxPacker.{DefaultItemSorter, Item, SimpleItem}
 

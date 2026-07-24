@@ -1,9 +1,5 @@
 defmodule ExBoxPacker.OrientatedItem do
-  @moduledoc """
-  An item placed in a specific orthogonal orientation (`width` x `length` x `depth`).
-  Port of BoxPacker's `OrientatedItem`. `surface_footprint` is the base area
-  (`width * length`); `stable?/1` encodes the centre-of-gravity tipping test.
-  """
+  @moduledoc false
 
   alias ExBoxPacker.Item
 

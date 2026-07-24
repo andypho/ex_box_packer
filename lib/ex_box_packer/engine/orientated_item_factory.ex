@@ -1,9 +1,5 @@
 defmodule ExBoxPacker.OrientatedItemFactory do
-  @moduledoc """
-  Generates and selects item orientations. Port of BoxPacker's `OrientatedItemFactory`
-  (stateless here). The look-ahead tiebreaker and `ConstrainedPlacementItem` filtering
-  from the original are deferred to later milestones.
-  """
+  @moduledoc false
 
   alias ExBoxPacker.{Box, Item, OrientatedItem}
 

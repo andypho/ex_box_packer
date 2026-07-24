@@ -1,8 +1,5 @@
 defmodule ExBoxPacker.PackedLayer do
-  @moduledoc """
-  A horizontal layer of packed items, with geometry accessors. Port of BoxPacker's `PackedLayer`.
-  An empty layer reports `0` for every dimension.
-  """
+  @moduledoc false
 
   alias ExBoxPacker.{Item, PackedItem}
 
