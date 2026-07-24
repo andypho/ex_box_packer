@@ -60,4 +60,17 @@ defmodule ExBoxPacker.VolumePackerTest do
     assert fitted(VolumePacker.pack(box(4, 14, 11, 100), items)) == 3
     assert fitted(VolumePacker.pack(box(14, 11, 4, 100), items)) == 3
   end
+
+  # Faithful port of VolumePackerTest::testOrientationDecisions. Both sub-cases pack 20
+  # of the same item into a 25x25x20 box; the correct orientation choices (driven by the
+  # look-ahead) are needed to fit all 20.
+  test "orientation decisions leave room for following items" do
+    items_a = List.duplicate(item(5, 6, 20, 20, :keep_flat), 20)
+    packed_a = VolumePacker.pack(box(25, 25, 20, 1000), items_a)
+    assert fitted(packed_a) == 20
+
+    items_b = List.duplicate(item(20, 5, 6, 20, :best_fit), 20)
+    packed_b = VolumePacker.pack(box(25, 25, 20, 1000), items_b)
+    assert fitted(packed_b) == 20
+  end
 end
