@@ -15,7 +15,9 @@ defmodule ExBoxPacker.NoBoxesAvailableErrorTest do
 
   test "it is raisable" do
     assert_raise NoBoxesAvailableError, fn ->
-      raise NoBoxesAvailableError.exception([%SimpleItem{description: "x", width: 1, length: 1, depth: 1, weight: 1}])
+      raise NoBoxesAvailableError.exception([
+              %SimpleItem{description: "x", width: 1, length: 1, depth: 1, weight: 1}
+            ])
     end
   end
 end
