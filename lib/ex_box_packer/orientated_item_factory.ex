@@ -5,7 +5,7 @@ defmodule ExBoxPacker.OrientatedItemFactory do
   from the original are deferred to later milestones.
   """
 
-  alias ExBoxPacker.{Box, Item, OrientatedItem, OrientatedItemSorter}
+  alias ExBoxPacker.{Box, Item, OrientatedItem}
 
   @type dims :: {integer(), integer(), integer()}
 
@@ -78,12 +78,20 @@ defmodule ExBoxPacker.OrientatedItemFactory do
 
   @doc """
   The best orientation for `item` in the given remaining space, or `nil` if none fit.
-  When `consider_stability?` is true, unstable orientations are filtered per
-  `usable_orientations/3`. Selection uses `OrientatedItemSorter`.
+  `next_items` are the remaining items (extract order) used for the look-ahead tiebreaker;
+  `row_length` and `single_pass?` feed the look-ahead simulation (Task 5).
   """
-  @spec best_orientation(Box.t(), Item.t(), OrientatedItem.t() | nil, dims(), boolean()) ::
-          OrientatedItem.t() | nil
-  def best_orientation(box, item, prev_item, {wl, ll, dl} = space, consider_stability?) do
+  @spec best_orientation(
+          Box.t(),
+          Item.t(),
+          OrientatedItem.t() | nil,
+          dims(),
+          [Item.t()],
+          integer(),
+          boolean(),
+          boolean()
+        ) :: OrientatedItem.t() | nil
+  def best_orientation(box, item, prev_item, {wl, ll, dl} = space, next_items, row_length, single_pass?, consider_stability?) do
     possible = possible_orientations(item, prev_item, space)
     usable = if consider_stability?, do: usable_orientations(box, item, possible), else: possible
 
@@ -92,10 +100,18 @@ defmodule ExBoxPacker.OrientatedItemFactory do
         nil
 
       orientations ->
-        ctx = %{width_left: wl, length_left: ll, depth_left: dl}
+        ctx = %{
+          box: box,
+          width_left: wl,
+          length_left: ll,
+          depth_left: dl,
+          next_items: next_items,
+          row_length: row_length,
+          single_pass?: single_pass?
+        }
 
         orientations
-        |> OrientatedItemSorter.sort(ctx)
+        |> ExBoxPacker.OrientatedItemSorter.sort(ctx)
         |> hd()
     end
   end

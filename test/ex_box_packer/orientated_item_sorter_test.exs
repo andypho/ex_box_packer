@@ -12,7 +12,7 @@ defmodule ExBoxPacker.OrientatedItemSorterTest do
       )
 
   test "prefers an exact width fit" do
-    ctx = %{width_left: 10, length_left: 100, depth_left: 100}
+    ctx = %{box: nil, width_left: 10, length_left: 100, depth_left: 100, next_items: [], row_length: 0, single_pass?: true}
     exact = oi(10, 5, 5)
     loose = oi(8, 5, 5)
     assert OrientatedItemSorter.compare(exact, loose, ctx) == -1
@@ -20,28 +20,28 @@ defmodule ExBoxPacker.OrientatedItemSorterTest do
   end
 
   test "when width ties, prefers an exact length fit" do
-    ctx = %{width_left: 10, length_left: 10, depth_left: 100}
+    ctx = %{box: nil, width_left: 10, length_left: 10, depth_left: 100, next_items: [], row_length: 0, single_pass?: true}
     a = oi(8, 10, 5)
     b = oi(8, 7, 5)
     assert OrientatedItemSorter.compare(a, b, ctx) == -1
   end
 
   test "otherwise prefers the smaller minimum gap" do
-    ctx = %{width_left: 10, length_left: 10, depth_left: 100}
+    ctx = %{box: nil, width_left: 10, length_left: 10, depth_left: 100, next_items: [], row_length: 0, single_pass?: true}
     tight = oi(8, 8, 5)
     loose = oi(6, 6, 5)
     assert OrientatedItemSorter.compare(tight, loose, ctx) == -1
   end
 
   test "on equal min gap, prefers the smaller surface footprint" do
-    ctx = %{width_left: 10, length_left: 10, depth_left: 100}
+    ctx = %{box: nil, width_left: 10, length_left: 10, depth_left: 100, next_items: [], row_length: 0, single_pass?: true}
     small = oi(2, 8, 5)
     big = oi(4, 8, 5)
     assert OrientatedItemSorter.compare(small, big, ctx) == -1
   end
 
   test "sort/2 orders best-first" do
-    ctx = %{width_left: 10, length_left: 10, depth_left: 100}
+    ctx = %{box: nil, width_left: 10, length_left: 10, depth_left: 100, next_items: [], row_length: 0, single_pass?: true}
     exact = oi(10, 5, 5)
     loose = oi(6, 6, 5)
     assert [%{width: 10} | _] = OrientatedItemSorter.sort([loose, exact], ctx)

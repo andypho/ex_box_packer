@@ -102,6 +102,7 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
         item(4, 4, 4, :best_fit),
         nil,
         {@big, @big, @big},
+        [], 0, false,
         true
       )
 
@@ -114,6 +115,7 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
              item(10, 10, 10, :best_fit),
              nil,
              {5, 5, 5},
+             [], 0, false,
              true
            ) == nil
   end
@@ -125,6 +127,7 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
         item(1, 1, 10, :best_fit),
         nil,
         {@big, @big, @big},
+        [], 0, false,
         true
       )
 
@@ -142,6 +145,7 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
         item(1, 1, 10, :best_fit),
         nil,
         {@big, @big, @big},
+        [], 0, false,
         false
       )
 
