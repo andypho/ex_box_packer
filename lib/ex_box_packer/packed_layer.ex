@@ -17,7 +17,7 @@ defmodule ExBoxPacker.PackedLayer do
 
   @spec insert(t(), PackedItem.t()) :: t()
   def insert(%__MODULE__{items: items} = layer, %PackedItem{} = item),
-    do: %{layer | items: [item | items]}
+    do: %{layer | items: items ++ [item]}
 
   @spec merge(t(), t()) :: t()
   def merge(%__MODULE__{items: a}, %__MODULE__{items: b}), do: %__MODULE__{items: a ++ b}

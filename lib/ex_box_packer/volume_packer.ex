@@ -150,9 +150,10 @@ defmodule ExBoxPacker.VolumePacker do
   # otherwise re-pack with the now-known depth so shorter items can stack up from the first.
   defp finalise_layer(rc, items, packed, layer_start_depth, remaining_depth, first, prelim) do
     prelim_depth = PackedLayer.depth(prelim.prelim_layer)
-    # PHP indexes getItems()[0] (first inserted). PackedLayer prepends on insert, so the
-    # first-inserted item is the LAST element of PackedLayer.items/1.
-    first_depth = List.last(prelim.prelim_items).depth
+    # PHP indexes getItems()[0] (first inserted, the layer's origin item at the start
+    # corner). PackedLayer now stores items oldest-first (insert appends), so hd/1 is
+    # exactly PHP's getItems()[0].
+    first_depth = hd(prelim.prelim_items).depth
 
     if prelim_depth == first_depth do
       {prelim.prelim_layer, prelim.prelim_remaining}
@@ -239,7 +240,7 @@ defmodule ExBoxPacker.VolumePacker do
   end
 
   # PHP iterates getItems() (oldest-first) and inserts (append). PackedLayer.items/1 is
-  # newest-first, and insert prepends, so reduce over items as-is to preserve order.
+  # now oldest-first and insert appends, so reduce over items as-is to preserve order.
   defp rotate_layer(layer) do
     Enum.reduce(PackedLayer.items(layer), PackedLayer.new(), fn it, acc ->
       PackedLayer.insert(
@@ -250,8 +251,10 @@ defmodule ExBoxPacker.VolumePacker do
   end
 
   defp packed_item_list(layers) do
+    # PHP getPackedItemList iterates each layer's getItems() (oldest-first) and inserts.
+    # PackedLayer.items/1 is now oldest-first, so iterate it directly.
     layers
-    |> Enum.flat_map(fn layer -> layer |> PackedLayer.items() |> Enum.reverse() end)
+    |> Enum.flat_map(&PackedLayer.items/1)
     |> Enum.reduce(PackedItemList.new(), fn it, list -> PackedItemList.insert(list, it) end)
   end
 
