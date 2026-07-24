@@ -41,7 +41,9 @@ defmodule ExBoxPacker.PackedItemList do
   @doc "Packed items sorted for output: item volume desc, then item weight desc."
   @spec sorted(t()) :: [PackedItem.t()]
   def sorted(%__MODULE__{items: items}) do
-    Enum.sort(items, fn a, b ->
+    items
+    |> Enum.reverse()
+    |> Enum.sort(fn a, b ->
       vol_a = Item.width(a.item) * Item.length(a.item) * Item.depth(a.item)
       vol_b = Item.width(b.item) * Item.length(b.item) * Item.depth(b.item)
 

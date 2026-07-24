@@ -53,4 +53,11 @@ defmodule ExBoxPacker.PackedItemListTest do
              "small_heavy"
            ]
   end
+
+  test "sorted preserves insertion order for fully-tied items" do
+    first = packed("first", 3, 3, 3, 5)
+    second = packed("second", 3, 3, 3, 5)
+    list = PackedItemList.from_list([first, second])
+    assert PackedItemList.sorted(list) |> Enum.map(& &1.item.description) == ["first", "second"]
+  end
 end
