@@ -1,6 +1,14 @@
 defmodule ExBoxPacker.DefaultPackedBoxSorterTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.{DefaultPackedBoxSorter, PackedBox, PackedItem, PackedItemList, SimpleBox, SimpleItem}
+
+  alias ExBoxPacker.{
+    DefaultPackedBoxSorter,
+    PackedBox,
+    PackedItem,
+    PackedItemList,
+    SimpleBox,
+    SimpleItem
+  }
 
   defp box(iw, il, id) do
     %SimpleBox{
@@ -17,7 +25,15 @@ defmodule ExBoxPacker.DefaultPackedBoxSorterTest do
   end
 
   defp pi(w, l, d) do
-    PackedItem.new(%SimpleItem{description: "i", width: w, length: l, depth: d, weight: 1}, 0, 0, 0, w, l, d)
+    PackedItem.new(
+      %SimpleItem{description: "i", width: w, length: l, depth: d, weight: 1},
+      0,
+      0,
+      0,
+      w,
+      l,
+      d
+    )
   end
 
   defp packed(box, items), do: PackedBox.new(box, PackedItemList.from_list(items))

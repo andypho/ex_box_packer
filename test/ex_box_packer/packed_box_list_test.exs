@@ -25,7 +25,15 @@ defmodule ExBoxPacker.PackedBoxListTest do
   end
 
   defp pi(w, l, d, weight) do
-    PackedItem.new(%SimpleItem{description: "i", width: w, length: l, depth: d, weight: weight}, 0, 0, 0, w, l, d)
+    PackedItem.new(
+      %SimpleItem{description: "i", width: w, length: l, depth: d, weight: weight},
+      0,
+      0,
+      0,
+      w,
+      l,
+      d
+    )
   end
 
   defp packed(box, items), do: PackedBox.new(box, PackedItemList.from_list(items))

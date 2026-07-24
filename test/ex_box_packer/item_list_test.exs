@@ -3,7 +3,14 @@ defmodule ExBoxPacker.ItemListTest do
   alias ExBoxPacker.{ItemList, SimpleItem}
 
   defp item(desc, w, l, d, weight, qty \\ 1),
-    do: %SimpleItem{description: desc, width: w, length: l, depth: d, weight: weight, quantity: qty}
+    do: %SimpleItem{
+      description: desc,
+      width: w,
+      length: l,
+      depth: d,
+      weight: weight,
+      quantity: qty
+    }
 
   test "from_items expands SimpleItem quantity into individual units of quantity 1" do
     result = ItemList.from_items([item("x", 5, 5, 5, 1, 3)])

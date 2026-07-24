@@ -45,9 +45,10 @@ defmodule ExBoxPacker.PackedItemList do
       vol_a = Item.width(a.item) * Item.length(a.item) * Item.depth(a.item)
       vol_b = Item.width(b.item) * Item.length(b.item) * Item.depth(b.item)
 
-      cond do
-        vol_a != vol_b -> vol_a > vol_b
-        true -> Item.weight(a.item) >= Item.weight(b.item)
+      if vol_a != vol_b do
+        vol_a > vol_b
+      else
+        Item.weight(a.item) >= Item.weight(b.item)
       end
     end)
   end

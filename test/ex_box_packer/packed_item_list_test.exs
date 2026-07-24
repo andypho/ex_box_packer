@@ -47,6 +47,10 @@ defmodule ExBoxPacker.PackedItemListTest do
     big = packed("big", 3, 3, 3, 1)
     small_heavy = packed("small_heavy", 1, 1, 1, 100)
     list = PackedItemList.from_list([small_heavy, big])
-    assert PackedItemList.sorted(list) |> Enum.map(& &1.item.description) == ["big", "small_heavy"]
+
+    assert PackedItemList.sorted(list) |> Enum.map(& &1.item.description) == [
+             "big",
+             "small_heavy"
+           ]
   end
 end
