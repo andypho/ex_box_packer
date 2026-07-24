@@ -70,12 +70,6 @@ protocols, `Rotation`, the sorters, and the `Packed*` result structs.
 - **Extensibility:** custom items/boxes implement the `ExBoxPacker.Item` / `ExBoxPacker.Box` protocols. Later
   milestones add optional protocols for constrained placement, limited supply, and linked items.
 
-## Design & plans
-
-- Design spec and milestone implementation plans live under `docs/superpowers/` (not published).
-- A performance comparison against the pure-Elixir `robox` packer is in
-  [`docs/benchmarks/robox-vs-boxpacker.md`](docs/benchmarks/robox-vs-boxpacker.md).
-
 ## License
 
 MIT. This project is a port of BoxPacker (also MIT), © Doug Wright and contributors.
