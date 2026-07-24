@@ -9,6 +9,7 @@ defmodule ExBoxPacker.MixProject do
       app: :ex_box_packer,
       version: @version,
       elixir: "~> 1.20",
+      compilers: [:boundary] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -29,6 +30,7 @@ defmodule ExBoxPacker.MixProject do
 
   defp deps do
     [
+      {:boundary, "~> 0.10", runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
