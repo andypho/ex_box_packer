@@ -6,7 +6,7 @@ defmodule ExBoxPacker.Engine.VolumePacker do
   full pack short-circuits; otherwise highest volume utilisation).
   """
 
-  alias ExBoxPacker.{Box, Item}
+  alias ExBoxPacker.{Box, ConstrainedPlacementItem, Item}
   alias ExBoxPacker.Engine.{ItemList, LayerPacker, LayerStabiliser, OrientatedItemFactory}
   alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList, PackedLayer}
 
@@ -22,8 +22,15 @@ defmodule ExBoxPacker.Engine.VolumePacker do
 
     pack_across_width_only? = single_pass?
     has_no_rotation? = Enum.any?(sorted, &(Item.allowed_rotation(&1) == :never))
+    has_constrained_items? = Enum.any?(sorted, &(ConstrainedPlacementItem.impl_for(&1) != nil))
 
-    packer_opts = %{box: box, single_pass?: single_pass?, strict_ordering?: strict?}
+    packer_opts = %{
+      box: box,
+      single_pass?: single_pass?,
+      strict_ordering?: strict?,
+      has_constrained_items?: has_constrained_items?,
+      box_rotated?: false
+    }
 
     rotations =
       if not pack_across_width_only? and not has_no_rotation?, do: [false, true], else: [false]
@@ -35,11 +42,14 @@ defmodule ExBoxPacker.Engine.VolumePacker do
             do: {Box.inner_length(box), Box.inner_width(box)},
             else: {Box.inner_width(box), Box.inner_length(box)}
 
+        # setBoxIsRotated: true when the tried footprint width differs from the box's own.
+        rotation_opts = %{packer_opts | box_rotated?: Box.inner_width(box) != box_width}
+
         first_item_orientations =
           first_item_orientations(single_pass?, sorted, box, box_width, box_length)
 
         Enum.map(first_item_orientations, fn first ->
-          pack_rotation(packer_opts, sorted, box, box_width, box_length, first)
+          pack_rotation(rotation_opts, sorted, box, box_width, box_length, first)
         end)
       end)
 
@@ -60,10 +70,16 @@ defmodule ExBoxPacker.Engine.VolumePacker do
        do: [nil]
 
   defp first_item_orientations(_single_pass?, sorted, box, box_width, box_length) do
+    # Mirror VolumePacker::pack: the first-item probe uses a fresh factory (boxIsRotated
+    # defaults to false) with an empty packed list at the origin, so constraints are still
+    # evaluated for a constrained first item.
+    placement = %{box: box, x: 0, y: 0, z: 0, packed: PackedItemList.new(), box_rotated?: false}
+
     case OrientatedItemFactory.possible_orientations(
            hd(sorted),
            nil,
-           {box_width, box_length, Box.inner_depth(box)}
+           {box_width, box_length, Box.inner_depth(box)},
+           placement
          ) do
       [] -> [nil]
       os -> os
@@ -170,10 +186,14 @@ defmodule ExBoxPacker.Engine.VolumePacker do
   end
 
   defp stabilise_layers(layers, opts) do
-    # PHP also skips stabilisation when the item set has constrained placement items;
-    # ConstrainedPlacementItem support is deferred to a later milestone, so only the
-    # strict-ordering guard is checked here.
-    if opts.strict_ordering?, do: layers, else: LayerStabiliser.stabilise(layers)
+    # Constraints include position, so reordering layers would invalidate them: skip
+    # stabilisation when the item set has constrained items (or strict ordering is on),
+    # matching VolumePacker::stabiliseLayers.
+    if opts.has_constrained_items? or opts.strict_ordering? do
+      layers
+    else
+      LayerStabiliser.stabilise(layers)
+    end
   end
 
   defp fill_end_gaps(layers, rc, items) do

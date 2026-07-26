@@ -1,8 +1,14 @@
 defmodule ExBoxPacker.VolumePackerTest do
   use ExUnit.Case, async: true
   alias ExBoxPacker.Engine.VolumePacker
-  alias ExBoxPacker.Result.{PackedBox, PackedItemList}
-  alias ExBoxPacker.{SimpleBox, SimpleItem}
+  alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
+
+  alias ExBoxPacker.Test.{
+    ConstrainedPlacementByCountTestItem,
+    ConstrainedPlacementNoStackingTestItem
+  }
+
+  alias ExBoxPacker.{Packer, SimpleBox, SimpleItem}
 
   defp box(iw, il, id, mw),
     do: %SimpleBox{
@@ -199,5 +205,59 @@ defmodule ExBoxPacker.VolumePackerTest do
 
     items = [h, q, x, l]
     assert fitted(VolumePacker.pack(box465, items)) == 4
+  end
+
+  # Faithful port of VolumePackerTest::testNewConstraintMatchesLegacy. 8 unit items into a
+  # 10x10x10 box: unconstrained they all fit in 1 box; with a max-2-of-type constraint they
+  # spread across 4 boxes.
+  test "new constraint (by count) matches legacy: 1 box unconstrained, 4 boxes constrained" do
+    box = fn -> box(10, 10, 10, 0) end
+
+    unconstrained = List.duplicate(item(1, 1, 1, 0, :best_fit), 8)
+    {:ok, packed} = Packer.pack([box.()], unconstrained)
+    assert PackedBoxList.count(packed) == 1
+
+    constrained =
+      List.duplicate(
+        %ConstrainedPlacementByCountTestItem{
+          description: "Item",
+          width: 1,
+          length: 1,
+          depth: 1,
+          weight: 0,
+          allowed_rotation: :best_fit,
+          limit: 2
+        },
+        8
+      )
+
+    {:ok, packed} = Packer.pack([box.()], constrained)
+    assert PackedBoxList.count(packed) == 4
+  end
+
+  # Faithful port of VolumePackerTest::testNewConstraint. 8 unit items into a 4x1x2 box:
+  # unconstrained they all fit in 1 box; with a no-stacking constraint they need 2 boxes.
+  test "new constraint (no stacking): 1 box unconstrained, 2 boxes constrained" do
+    box = fn -> box(4, 1, 2, 0) end
+
+    unconstrained = List.duplicate(item(1, 1, 1, 0, :best_fit), 8)
+    {:ok, packed} = Packer.pack([box.()], unconstrained)
+    assert PackedBoxList.count(packed) == 1
+
+    constrained =
+      List.duplicate(
+        %ConstrainedPlacementNoStackingTestItem{
+          description: "Item",
+          width: 1,
+          length: 1,
+          depth: 1,
+          weight: 0,
+          allowed_rotation: :best_fit
+        },
+        8
+      )
+
+    {:ok, packed} = Packer.pack([box.()], constrained)
+    assert PackedBoxList.count(packed) == 2
   end
 end
