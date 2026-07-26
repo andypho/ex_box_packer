@@ -10,11 +10,21 @@ defmodule ExBoxPacker.Packer do
 
   Options: `:packed_box_sorter` (module, default `DefaultPackedBoxSorter`),
   `:strict_ordering?` (default `false`). Boxes implementing `ExBoxPacker.LimitedSupplyBox`
-  are only used up to their available quantity. Linked items are added in a later milestone.
+  are only used up to their available quantity. Items implementing `ExBoxPacker.LinkedItem`
+  are kept together via `ExBoxPacker.Engine.LinkedItemGroupEnforcer` (a linked group is
+  never split across boxes).
   """
 
   alias ExBoxPacker.{Box, Item, LimitedSupplyBox, NoBoxesAvailableError}
-  alias ExBoxPacker.Engine.{BoxList, ItemList, VolumePacker, WeightRedistributor}
+
+  alias ExBoxPacker.Engine.{
+    BoxList,
+    ItemList,
+    LinkedItemGroupEnforcer,
+    VolumePacker,
+    WeightRedistributor
+  }
+
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
   alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
 
@@ -124,6 +134,7 @@ defmodule ExBoxPacker.Packer do
     box_list
     |> Enum.reduce_while([], fn box, acc ->
       packed = VolumePacker.pack(box, items, strict_ordering?: strict?)
+      packed = LinkedItemGroupEnforcer.enforce_constraint(packed, items, strict?)
 
       case PackedItemList.count(packed.items) do
         0 -> {:cont, acc}

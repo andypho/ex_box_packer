@@ -3,7 +3,7 @@ defmodule ExBoxPacker.PackerTest do
 
   alias ExBoxPacker.{NoBoxesAvailableError, Packer, SimpleBox, SimpleItem}
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
-  alias ExBoxPacker.Test.LimitedSupplyTestBox
+  alias ExBoxPacker.Test.{LimitedSupplyTestBox, LinkedTestItem}
 
   # Reverse-reference sorter: prefers the box whose reference sorts LAST.
   defmodule ReverseRefSorter do
@@ -240,4 +240,40 @@ defmodule ExBoxPacker.PackerTest do
     items = List.duplicate(item("Item", 100, 100, 100, 75, :best_fit), 3)
     assert {:error, %ExBoxPacker.NoBoxesAvailableError{}} = Packer.pack([light], items)
   end
+
+  test "linked group is never split across boxes" do
+    # Width-100 box. Greedy largest-first packs Filler(60) + one linked member A1(40) = 100,
+    # leaving A2(40) alone in a second box — splitting group-A. The enforcer must instead keep
+    # the linked pair together (A1+A2 = 80 in one box) and ship the filler on its own.
+    boxes = [box("Box", 100, 10, 10, 0, 10_000)]
+
+    a1 = linked_item("A1", 40, "group-A")
+    a2 = linked_item("A2", 40, "group-A")
+    filler = item("Filler", 60, 10, 10, 10, :keep_flat)
+
+    {:ok, pbl} = Packer.pack(boxes, [a1, a2, filler])
+    assert PackedBoxList.count(pbl) == 2
+
+    groups =
+      pbl
+      |> PackedBoxList.to_list()
+      |> Enum.map(fn pb ->
+        pb.items |> PackedItemList.as_items() |> Enum.map(& &1.description) |> Enum.sort()
+      end)
+      |> Enum.sort()
+
+    # Linked pair together in one box, filler alone in the other.
+    assert groups == [["A1", "A2"], ["Filler"]]
+  end
+
+  defp linked_item(desc, width, group),
+    do: %LinkedTestItem{
+      description: desc,
+      width: width,
+      length: 10,
+      depth: 10,
+      weight: 10,
+      allowed_rotation: :keep_flat,
+      linked_item_group: group
+    }
 end

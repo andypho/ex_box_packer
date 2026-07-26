@@ -11,6 +11,7 @@ defmodule ExBoxPacker do
       Item,
       Box,
       ConstrainedPlacementItem,
+      LinkedItem,
       LimitedSupplyBox,
       SimpleItem,
       SimpleBox,
