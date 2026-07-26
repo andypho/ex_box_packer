@@ -14,7 +14,7 @@ defmodule ExBoxPacker.Packer do
   """
 
   alias ExBoxPacker.{Box, Item, NoBoxesAvailableError}
-  alias ExBoxPacker.Engine.{BoxList, ItemList, VolumePacker}
+  alias ExBoxPacker.Engine.{BoxList, ItemList, VolumePacker, WeightRedistributor}
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
   alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
 
@@ -25,8 +25,21 @@ defmodule ExBoxPacker.Packer do
     {packed, leftover} = do_pack(boxes, items, opts)
 
     case leftover do
-      [] -> {:ok, packed}
+      [] -> {:ok, maybe_redistribute(packed, boxes, opts)}
       _ -> {:error, NoBoxesAvailableError.exception(leftover)}
+    end
+  end
+
+  defp maybe_redistribute(packed, boxes, opts) do
+    strict? = Keyword.get(opts, :strict_ordering?, false)
+    max_balance = Keyword.get(opts, :max_boxes_to_balance_weight, 12)
+    sorter = Keyword.get(opts, :packed_box_sorter, DefaultPackedBoxSorter)
+    count = PackedBoxList.count(packed)
+
+    if not strict? and count > 1 and count <= max_balance do
+      WeightRedistributor.redistribute(packed, BoxList.sort(boxes), sorter)
+    else
+      packed
     end
   end
 

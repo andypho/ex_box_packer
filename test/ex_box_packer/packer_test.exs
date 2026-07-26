@@ -162,4 +162,28 @@ defmodule ExBoxPacker.PackerTest do
     {pbl2, leftover2} = Packer.pack_all_possible(boxes, items, enforce_single_box?: true)
     assert PackedBoxList.count(pbl2) == 0 and length(leftover2) == 3
   end
+
+  test "weight redistribution evens out boxes (2+2 instead of 3+1)" do
+    boxes = [box("Box", 1, 1, 3, 0, 3)]
+    items = List.duplicate(item("Item", 1, 1, 1, 1, :best_fit), 4)
+
+    {:ok, pbl} = Packer.pack(boxes, items)
+
+    counts =
+      pbl |> PackedBoxList.to_list() |> Enum.map(&PackedItemList.count(&1.items)) |> Enum.sort()
+
+    assert counts == [2, 2]
+  end
+
+  test "weight redistribution can be disabled via max_boxes_to_balance_weight (3+1)" do
+    boxes = [box("Box", 1, 1, 3, 0, 3)]
+    items = List.duplicate(item("Item", 1, 1, 1, 1, :best_fit), 4)
+
+    {:ok, pbl} = Packer.pack(boxes, items, max_boxes_to_balance_weight: 1)
+
+    counts =
+      pbl |> PackedBoxList.to_list() |> Enum.map(&PackedItemList.count(&1.items)) |> Enum.sort()
+
+    assert counts == [1, 3]
+  end
 end
