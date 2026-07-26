@@ -46,22 +46,39 @@ defmodule ExBoxPacker.Packer do
   defp do_pack(boxes, items, opts) do
     sorter = Keyword.get(opts, :packed_box_sorter, DefaultPackedBoxSorter)
     strict? = Keyword.get(opts, :strict_ordering?, false)
+    enforce_single? = Keyword.get(opts, :enforce_single_box?, false)
     sorted_items = ItemList.from_items(items)
     sorted_boxes = BoxList.sort(boxes)
-    do_basic_packing(sorted_boxes, sorted_items, sorter, strict?, PackedBoxList.new(sorter))
+
+    do_basic_packing(
+      sorted_boxes,
+      sorted_items,
+      sorter,
+      strict?,
+      enforce_single?,
+      PackedBoxList.new(sorter)
+    )
   end
 
-  defp do_basic_packing(_boxes, [], _sorter, _strict?, acc), do: {acc, []}
+  defp do_basic_packing(_boxes, [], _sorter, _strict?, _enforce_single?, acc), do: {acc, []}
 
-  defp do_basic_packing(boxes, items, sorter, strict?, acc) do
-    case collect_candidates(get_box_list(items, boxes), items, strict?) do
+  defp do_basic_packing(boxes, items, sorter, strict?, enforce_single?, acc) do
+    case collect_candidates(get_box_list(items, boxes, enforce_single?), items, strict?) do
       [] ->
         {acc, items}
 
       candidates ->
         best = candidates |> Enum.sort(&(sorter.compare(&1, &2) <= 0)) |> hd()
         remaining = subtract_packed(items, best)
-        do_basic_packing(boxes, remaining, sorter, strict?, PackedBoxList.insert(acc, best))
+
+        do_basic_packing(
+          boxes,
+          remaining,
+          sorter,
+          strict?,
+          enforce_single?,
+          PackedBoxList.insert(acc, best)
+        )
     end
   end
 
@@ -84,7 +101,7 @@ defmodule ExBoxPacker.Packer do
 
   # Boxes that can hold ALL remaining items (by volume) first, then the rest — both in the
   # incoming (smallest-first) order.
-  defp get_box_list(items, boxes) do
+  defp get_box_list(items, boxes, enforce_single?) do
     item_volume =
       Enum.reduce(items, 0, fn i, acc -> acc + Item.width(i) * Item.length(i) * Item.depth(i) end)
 
@@ -93,7 +110,7 @@ defmodule ExBoxPacker.Packer do
         Box.inner_width(box) * Box.inner_length(box) * Box.inner_depth(box) >= item_volume
       end)
 
-    preferred ++ other
+    if enforce_single?, do: preferred, else: preferred ++ other
   end
 
   defp subtract_packed(items, %PackedBox{items: packed_list}) do

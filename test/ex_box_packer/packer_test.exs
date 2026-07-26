@@ -151,4 +151,15 @@ defmodule ExBoxPacker.PackerTest do
     {:ok, custom_pbl} = Packer.pack(boxes, items, packed_box_sorter: ReverseRefSorter)
     assert PackedBoxList.top(custom_pbl).box.reference == "Box #2"
   end
+
+  test "enforce_single_box? refuses to spill across boxes" do
+    boxes = [box("B", 1, 1, 2, 0, 1_000)]
+    items = List.duplicate(item("i", 1, 1, 1, 1, :best_fit), 3)
+
+    {pbl, leftover} = Packer.pack_all_possible(boxes, items)
+    assert PackedBoxList.count(pbl) == 2 and leftover == []
+
+    {pbl2, leftover2} = Packer.pack_all_possible(boxes, items, enforce_single_box?: true)
+    assert PackedBoxList.count(pbl2) == 0 and length(leftover2) == 3
+  end
 end
