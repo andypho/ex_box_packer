@@ -10,6 +10,7 @@ defmodule ExBoxPacker do
       Engine.VolumePacker,
       Item,
       Box,
+      LimitedSupplyBox,
       SimpleItem,
       SimpleBox,
       Rotation,

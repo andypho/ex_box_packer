@@ -3,6 +3,7 @@ defmodule ExBoxPacker.PackerTest do
 
   alias ExBoxPacker.{NoBoxesAvailableError, Packer, SimpleBox, SimpleItem}
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
+  alias ExBoxPacker.Test.LimitedSupplyTestBox
 
   # Reverse-reference sorter: prefers the box whose reference sorts LAST.
   defmodule ReverseRefSorter do
@@ -185,5 +186,58 @@ defmodule ExBoxPacker.PackerTest do
       pbl |> PackedBoxList.to_list() |> Enum.map(&PackedItemList.count(&1.items)) |> Enum.sort()
 
     assert counts == [1, 3]
+  end
+
+  test "unlimited supply: three items go into three light boxes" do
+    boxes = [
+      box("Light box", 100, 100, 100, 1, 100),
+      box("Heavy box", 100, 100, 100, 100, 10_000)
+    ]
+
+    items = List.duplicate(item("Item", 100, 100, 100, 75, :best_fit), 3)
+    {:ok, pbl} = Packer.pack(boxes, items)
+    refs = pbl |> PackedBoxList.to_list() |> Enum.map(& &1.box.reference)
+    assert refs == ["Light box", "Light box", "Light box"]
+  end
+
+  test "limited supply: light box capped at 2, third item uses heavy box" do
+    light = %LimitedSupplyTestBox{
+      reference: "Light box",
+      outer_width: 100,
+      outer_length: 100,
+      outer_depth: 100,
+      empty_weight: 1,
+      inner_width: 100,
+      inner_length: 100,
+      inner_depth: 100,
+      max_weight: 100,
+      quantity: 2
+    }
+
+    boxes = [light, box("Heavy box", 100, 100, 100, 100, 10_000)]
+    items = List.duplicate(item("Item", 100, 100, 100, 75, :best_fit), 3)
+    {:ok, pbl} = Packer.pack(boxes, items)
+    refs = pbl |> PackedBoxList.to_list() |> Enum.map(& &1.box.reference)
+    assert Enum.sort(refs) == ["Heavy box", "Light box", "Light box"]
+    # heaviest box (heavy empty weight) sorts first after weight redistribution
+    assert hd(refs) == "Heavy box"
+  end
+
+  test "not enough limited supply raises" do
+    light = %LimitedSupplyTestBox{
+      reference: "Light box",
+      outer_width: 100,
+      outer_length: 100,
+      outer_depth: 100,
+      empty_weight: 1,
+      inner_width: 100,
+      inner_length: 100,
+      inner_depth: 100,
+      max_weight: 100,
+      quantity: 2
+    }
+
+    items = List.duplicate(item("Item", 100, 100, 100, 75, :best_fit), 3)
+    assert {:error, %ExBoxPacker.NoBoxesAvailableError{}} = Packer.pack([light], items)
   end
 end

@@ -9,11 +9,11 @@ defmodule ExBoxPacker.Packer do
   and repeat.
 
   Options: `:packed_box_sorter` (module, default `DefaultPackedBoxSorter`),
-  `:strict_ordering?` (default `false`). Weight redistribution, limited supply, and linked
-  items are added in later milestones.
+  `:strict_ordering?` (default `false`). Boxes implementing `ExBoxPacker.LimitedSupplyBox`
+  are only used up to their available quantity. Linked items are added in a later milestone.
   """
 
-  alias ExBoxPacker.{Box, Item, NoBoxesAvailableError}
+  alias ExBoxPacker.{Box, Item, LimitedSupplyBox, NoBoxesAvailableError}
   alias ExBoxPacker.Engine.{BoxList, ItemList, VolumePacker, WeightRedistributor}
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
   alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
@@ -35,6 +35,9 @@ defmodule ExBoxPacker.Packer do
     max_balance = Keyword.get(opts, :max_boxes_to_balance_weight, 12)
     sorter = Keyword.get(opts, :packed_box_sorter, DefaultPackedBoxSorter)
     count = PackedBoxList.count(packed)
+
+    # NOTE: WeightRedistributor is quantity-unaware — it repacks via `pack_all_possible`
+    # treating boxes as unlimited. A quantity-aware repack is a future refinement.
 
     if not strict? and count > 1 and count <= max_balance do
       WeightRedistributor.redistribute(packed, BoxList.sort(boxes), sorter)
@@ -62,6 +65,7 @@ defmodule ExBoxPacker.Packer do
     enforce_single? = Keyword.get(opts, :enforce_single_box?, false)
     sorted_items = ItemList.from_items(items)
     sorted_boxes = BoxList.sort(boxes)
+    quantities = initial_quantities(boxes)
 
     do_basic_packing(
       sorted_boxes,
@@ -69,14 +73,31 @@ defmodule ExBoxPacker.Packer do
       sorter,
       strict?,
       enforce_single?,
+      quantities,
       PackedBoxList.new(sorter)
     )
   end
 
-  defp do_basic_packing(_boxes, [], _sorter, _strict?, _enforce_single?, acc), do: {acc, []}
+  # Box quantity available: `LimitedSupplyBox.quantity_available/1` for boxes implementing the
+  # protocol, else `:infinity` (unlimited). Port of Packer's `boxQuantitiesAvailable` WeakMap.
+  defp initial_quantities(boxes) do
+    Map.new(boxes, fn box ->
+      qty =
+        if LimitedSupplyBox.impl_for(box),
+          do: LimitedSupplyBox.quantity_available(box),
+          else: :infinity
 
-  defp do_basic_packing(boxes, items, sorter, strict?, enforce_single?, acc) do
-    case collect_candidates(get_box_list(items, boxes, enforce_single?), items, strict?) do
+      {box, qty}
+    end)
+  end
+
+  defp do_basic_packing(_boxes, [], _sorter, _strict?, _enforce_single?, _quantities, acc),
+    do: {acc, []}
+
+  defp do_basic_packing(boxes, items, sorter, strict?, enforce_single?, quantities, acc) do
+    box_list = get_box_list(items, boxes, enforce_single?, quantities)
+
+    case collect_candidates(box_list, items, strict?) do
       [] ->
         {acc, items}
 
@@ -90,6 +111,7 @@ defmodule ExBoxPacker.Packer do
           sorter,
           strict?,
           enforce_single?,
+          Map.update!(quantities, best.box, &decrement/1),
           PackedBoxList.insert(acc, best)
         )
     end
@@ -113,18 +135,27 @@ defmodule ExBoxPacker.Packer do
   end
 
   # Boxes that can hold ALL remaining items (by volume) first, then the rest — both in the
-  # incoming (smallest-first) order.
-  defp get_box_list(items, boxes, enforce_single?) do
+  # incoming (smallest-first) order. Boxes with no supply left are skipped (port of
+  # `getBoxList`'s `boxQuantitiesAvailable[$box] > 0` check).
+  defp get_box_list(items, boxes, enforce_single?, quantities) do
     item_volume =
       Enum.reduce(items, 0, fn i, acc -> acc + Item.width(i) * Item.length(i) * Item.depth(i) end)
 
+    available = Enum.filter(boxes, &available?(Map.fetch!(quantities, &1)))
+
     {preferred, other} =
-      Enum.split_with(boxes, fn box ->
+      Enum.split_with(available, fn box ->
         Box.inner_width(box) * Box.inner_length(box) * Box.inner_depth(box) >= item_volume
       end)
 
     if enforce_single?, do: preferred, else: preferred ++ other
   end
+
+  defp available?(:infinity), do: true
+  defp available?(n), do: n > 0
+
+  defp decrement(:infinity), do: :infinity
+  defp decrement(n), do: n - 1
 
   defp subtract_packed(items, %PackedBox{items: packed_list}) do
     packed_list

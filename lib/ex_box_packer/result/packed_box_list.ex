@@ -26,10 +26,17 @@ defmodule ExBoxPacker.Result.PackedBoxList do
   @spec count(t()) :: non_neg_integer()
   def count(%__MODULE__{boxes: boxes}), do: length(boxes)
 
-  @doc "All packed boxes, ordered by the configured sorter."
+  @doc """
+  All packed boxes, ordered by the configured sorter.
+
+  `insert/2` prepends, so `boxes` is stored in reverse insertion order; we reverse first to
+  recover insertion order before the (stable) sort. This makes the sorter's ties resolve in
+  insertion order, matching PHP's `PackedBoxList` (which appends and relies on `usort` being
+  stable) — notably the weight-descending order established by `WeightRedistributor`.
+  """
   @spec to_list(t()) :: [PackedBox.t()]
   def to_list(%__MODULE__{boxes: boxes, sorter: sorter}),
-    do: Enum.sort(boxes, &(sorter.compare(&1, &2) <= 0))
+    do: boxes |> Enum.reverse() |> Enum.sort(&(sorter.compare(&1, &2) <= 0))
 
   @doc "The single best box per the sorter."
   @spec top(t()) :: PackedBox.t()
