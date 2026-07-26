@@ -5,8 +5,13 @@ defmodule ExBoxPacker.Engine.LayerPacker do
   alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory}
   alias ExBoxPacker.Result.{PackedItem, PackedItemList, PackedLayer}
 
-  @typedoc "Options: box, single_pass?, strict_ordering?"
-  @type opts :: %{box: Box.t(), single_pass?: boolean(), strict_ordering?: boolean()}
+  @typedoc "Options: box, single_pass?, strict_ordering?, box_rotated?"
+  @type opts :: %{
+          box: Box.t(),
+          single_pass?: boolean(),
+          strict_ordering?: boolean(),
+          box_rotated?: boolean()
+        }
 
   @doc """
   Pack a layer. Region is bounded by absolute coordinates: x runs `start_x..width_for_layer`,
@@ -91,7 +96,12 @@ defmodule ExBoxPacker.Engine.LayerPacker do
               rest,
               st.row_length,
               st.opts.single_pass?,
-              st.consider_stability?
+              st.consider_stability?,
+              st.x,
+              st.y,
+              st.z,
+              st.packed,
+              Map.get(st.opts, :box_rotated?, false)
             )
 
           {oi, st.first_item}

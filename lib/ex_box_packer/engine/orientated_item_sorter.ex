@@ -39,8 +39,19 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
     [next | _] = ctx.next_items
     space_a = {a_width_left, ctx.length_left, ctx.depth_left}
     space_b = {b_width_left, ctx.length_left, ctx.depth_left}
-    fits_a = OrientatedItemFactory.possible_orientations(next, a, space_a) != []
-    fits_b = OrientatedItemFactory.possible_orientations(next, b, space_b) != []
+    # Pass the current placement context so the next-item fit respects any placement
+    # constraints, matching OrientatedItemSorter::lookAheadDecider (same x/y/z/packed).
+    placement = %{
+      box: ctx.box,
+      x: ctx.x,
+      y: ctx.y,
+      z: ctx.z,
+      packed: ctx.packed,
+      box_rotated?: ctx.box_rotated?
+    }
+
+    fits_a = OrientatedItemFactory.possible_orientations(next, a, space_a, placement) != []
+    fits_b = OrientatedItemFactory.possible_orientations(next, b, space_b, placement) != []
 
     cond do
       fits_a and not fits_b -> -1

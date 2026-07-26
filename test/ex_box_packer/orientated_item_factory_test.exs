@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.OrientatedItemFactoryTest do
   use ExUnit.Case, async: true
   alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory}
+  alias ExBoxPacker.Result.PackedItemList
   alias ExBoxPacker.{SimpleBox, SimpleItem}
 
   @big 1_000_000_000
@@ -106,7 +107,12 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
         [],
         0,
         false,
-        true
+        true,
+        0,
+        0,
+        0,
+        PackedItemList.new(),
+        false
       )
 
     assert %OrientatedItem{width: 4, length: 4, depth: 4} = best
@@ -121,7 +127,12 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
              [],
              0,
              false,
-             true
+             true,
+             0,
+             0,
+             0,
+             PackedItemList.new(),
+             false
            ) == nil
   end
 
@@ -135,7 +146,12 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
         [],
         0,
         false,
-        true
+        true,
+        0,
+        0,
+        0,
+        PackedItemList.new(),
+        false
       )
 
     assert best.depth == 1
@@ -155,6 +171,11 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
         [],
         0,
         false,
+        false,
+        0,
+        0,
+        0,
+        PackedItemList.new(),
         false
       )
 

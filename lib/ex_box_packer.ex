@@ -10,6 +10,7 @@ defmodule ExBoxPacker do
       Engine.VolumePacker,
       Item,
       Box,
+      ConstrainedPlacementItem,
       LimitedSupplyBox,
       SimpleItem,
       SimpleBox,

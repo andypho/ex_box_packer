@@ -1,10 +1,27 @@
 defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   @moduledoc false
 
-  alias ExBoxPacker.{Box, Item}
-  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemSorter}
+  alias ExBoxPacker.{Box, ConstrainedPlacementItem, Item}
+  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemSorter, WorkingVolume}
+  alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList}
 
   @type dims :: {integer(), integer(), integer()}
+
+  @typedoc """
+  Placement context threaded through the orientation API so per-placement constraints
+  (`ExBoxPacker.ConstrainedPlacementItem`) can be evaluated. `box` is the box being packed,
+  `x`/`y`/`z` the candidate position, `packed` the already-packed list, `box_rotated?` whether
+  the box footprint is being tried rotated. An empty map (or missing keys) means "no
+  constraint context" and skips the filter — used by callers that only need pure fit checks.
+  """
+  @type ctx :: %{
+          optional(:box) => Box.t(),
+          optional(:x) => integer(),
+          optional(:y) => integer(),
+          optional(:z) => integer(),
+          optional(:packed) => PackedItemList.t(),
+          optional(:box_rotated?) => boolean()
+        }
 
   @doc """
   All orthogonal orientations (as `{w, l, d}` tuples) allowed for `item`, deduped by
@@ -34,13 +51,88 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
     end
   end
 
-  @doc "Orientations from `generate_permutations/2` that fit within `{width, length, depth}` space."
-  @spec possible_orientations(Item.t(), OrientatedItem.t() | nil, dims()) :: [OrientatedItem.t()]
-  def possible_orientations(item, prev_item, {wl, ll, dl}) do
-    item
-    |> generate_permutations(prev_item)
-    |> Enum.filter(fn {w, l, d} -> w <= wl and l <= ll and d <= dl end)
-    |> Enum.map(fn {w, l, d} -> OrientatedItem.new(item, w, l, d) end)
+  @doc """
+  Orientations from `generate_permutations/2` that fit within `{width, length, depth}` space.
+
+  When a placement context (`ctx`) supplies a box, position and packed list, and the item
+  implements `ExBoxPacker.ConstrainedPlacementItem` (and the box is a real box, not a
+  `WorkingVolume`), each candidate is additionally filtered through the item's
+  `can_be_packed?/8` hook. Port of BoxPacker's `getPossibleOrientations`.
+  """
+  @spec possible_orientations(Item.t(), OrientatedItem.t() | nil, dims(), ctx()) ::
+          [OrientatedItem.t()]
+  def possible_orientations(item, prev_item, {wl, ll, dl}, ctx \\ %{}) do
+    orientations =
+      item
+      |> generate_permutations(prev_item)
+      |> Enum.filter(fn {w, l, d} -> w <= wl and l <= ll and d <= dl end)
+      |> Enum.map(fn {w, l, d} -> OrientatedItem.new(item, w, l, d) end)
+
+    apply_constraint_filter(orientations, item, ctx)
+  end
+
+  # Mirror OrientatedItemFactory::getPossibleOrientations: only filter when the item
+  # implements ConstrainedPlacementItem AND the box is a real box (not a WorkingVolume).
+  defp apply_constraint_filter(orientations, item, ctx) do
+    box = Map.get(ctx, :box)
+
+    if constrained?(item, box) do
+      packed = Map.get(ctx, :packed, PackedItemList.new())
+      x = Map.get(ctx, :x, 0)
+      y = Map.get(ctx, :y, 0)
+      z = Map.get(ctx, :z, 0)
+      box_rotated? = Map.get(ctx, :box_rotated?, false)
+
+      Enum.filter(orientations, &can_be_packed?(&1, box, x, y, z, packed, box_rotated?))
+    else
+      orientations
+    end
+  end
+
+  defp constrained?(item, box) do
+    ConstrainedPlacementItem.impl_for(item) != nil and box != nil and
+      not is_struct(box, WorkingVolume)
+  end
+
+  # boxIsRotated coordinate swap: build a rotated packed list (x<->y, width<->length) and
+  # query with swapped position/dimensions, matching OrientatedItemFactory.php exactly.
+  defp can_be_packed?(orientation, box, x, y, z, packed, true) do
+    rotated = rotate_packed_list(packed)
+
+    ConstrainedPlacementItem.can_be_packed?(
+      orientation.item,
+      PackedBox.new(box, rotated),
+      y,
+      x,
+      z,
+      orientation.length,
+      orientation.width,
+      orientation.depth
+    )
+  end
+
+  defp can_be_packed?(orientation, box, x, y, z, packed, false) do
+    ConstrainedPlacementItem.can_be_packed?(
+      orientation.item,
+      PackedBox.new(box, packed),
+      x,
+      y,
+      z,
+      orientation.width,
+      orientation.length,
+      orientation.depth
+    )
+  end
+
+  defp rotate_packed_list(%PackedItemList{items: items}) do
+    items
+    |> Enum.reverse()
+    |> Enum.reduce(PackedItemList.new(), fn it, acc ->
+      PackedItemList.insert(
+        acc,
+        PackedItem.new(it.item, it.y, it.x, it.z, it.length, it.width, it.depth)
+      )
+    end)
   end
 
   @doc """
@@ -65,10 +157,12 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   @doc "True if `item` has at least one stable orientation when placed in an empty `box`."
   @spec has_stable_orientations_in_empty_box?(Box.t(), Item.t()) :: boolean()
   def has_stable_orientations_in_empty_box?(box, item) do
+    # Mirror PHP passing new PackedItemList() with x=y=z=0 and box_rotated?=false.
     item
     |> possible_orientations(
       nil,
-      {Box.inner_width(box), Box.inner_length(box), Box.inner_depth(box)}
+      {Box.inner_width(box), Box.inner_length(box), Box.inner_depth(box)},
+      %{box: box, x: 0, y: 0, z: 0, packed: PackedItemList.new(), box_rotated?: false}
     )
     |> Enum.any?(&OrientatedItem.stable?/1)
   end
@@ -76,7 +170,9 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   @doc """
   The best orientation for `item` in the given remaining space, or `nil` if none fit.
   `next_items` are the remaining items (extract order) used for the look-ahead tiebreaker;
-  `row_length` and `single_pass?` feed the look-ahead simulation (Task 5).
+  `row_length` and `single_pass?` feed the look-ahead simulation. `x`/`y`/`z`, `packed` and
+  `box_rotated?` carry the placement context so per-placement constraints are honoured (and
+  are threaded through to the sorter's look-ahead of the next item).
   """
   @spec best_orientation(
           Box.t(),
@@ -86,8 +182,16 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
           [Item.t()],
           integer(),
           boolean(),
+          boolean(),
+          integer(),
+          integer(),
+          integer(),
+          PackedItemList.t(),
           boolean()
         ) :: OrientatedItem.t() | nil
+  # 13 parameters is a faithful 1:1 port of BoxPacker's getBestOrientation signature plus
+  # the box_rotated? flag carried on the factory instance in PHP.
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def best_orientation(
         box,
         item,
@@ -96,9 +200,15 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
         next_items,
         row_length,
         single_pass?,
-        consider_stability?
+        consider_stability?,
+        x,
+        y,
+        z,
+        packed,
+        box_rotated?
       ) do
-    possible = possible_orientations(item, prev_item, space)
+    placement = %{box: box, x: x, y: y, z: z, packed: packed, box_rotated?: box_rotated?}
+    possible = possible_orientations(item, prev_item, space, placement)
     usable = if consider_stability?, do: usable_orientations(box, item, possible), else: possible
 
     case usable do
@@ -113,7 +223,12 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
           depth_left: dl,
           next_items: next_items,
           row_length: row_length,
-          single_pass?: single_pass?
+          single_pass?: single_pass?,
+          x: x,
+          y: y,
+          z: z,
+          packed: packed,
+          box_rotated?: box_rotated?
         }
 
         orientations
