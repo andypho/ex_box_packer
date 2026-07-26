@@ -13,9 +13,14 @@ defmodule ExBoxPacker.Packer do
   are only used up to their available quantity. Items implementing `ExBoxPacker.LinkedItem`
   are kept together via `ExBoxPacker.Engine.LinkedItemGroupEnforcer` (a linked group is
   never split across boxes).
+
+  `:timeout` (number of SECONDS, default `nil` = unbounded) bounds packing time. When set,
+  `ExBoxPacker.TimeoutError` is raised (it propagates from `pack/3`, `pack!/3` and
+  `pack_all_possible/3`) once the deadline is exceeded during the per-box trial-packing loop.
+  Port of BoxPacker's `TimeoutChecker`/`DefaultTimeoutChecker`.
   """
 
-  alias ExBoxPacker.{Box, Item, LimitedSupplyBox, NoBoxesAvailableError}
+  alias ExBoxPacker.{Box, Item, LimitedSupplyBox, NoBoxesAvailableError, TimeoutError}
 
   alias ExBoxPacker.Engine.{
     BoxList,
@@ -76,6 +81,7 @@ defmodule ExBoxPacker.Packer do
     sorted_items = ItemList.from_items(items)
     sorted_boxes = BoxList.sort(boxes)
     quantities = initial_quantities(boxes)
+    timeout_ctx = start_timeout(Keyword.get(opts, :timeout))
 
     do_basic_packing(
       sorted_boxes,
@@ -84,8 +90,34 @@ defmodule ExBoxPacker.Packer do
       strict?,
       enforce_single?,
       quantities,
+      timeout_ctx,
       PackedBoxList.new(sorter)
     )
+  end
+
+  # Port of `TimeoutChecker::start` — records a deadline in monotonic ms alongside the
+  # configured timeout (in seconds) and start time, or `nil` when no timeout is set.
+  defp start_timeout(nil), do: nil
+
+  defp start_timeout(timeout) when is_number(timeout) do
+    start_ms = System.monotonic_time(:millisecond)
+    %{deadline_ms: start_ms + round(timeout * 1000), timeout: timeout, start_ms: start_ms}
+  end
+
+  # Port of `TimeoutChecker::throwOnTimeout` — raises once the deadline is reached.
+  defp throw_on_timeout(nil), do: :ok
+
+  defp throw_on_timeout(%{deadline_ms: deadline_ms, timeout: timeout, start_ms: start_ms}) do
+    now = System.monotonic_time(:millisecond)
+
+    if now >= deadline_ms do
+      raise TimeoutError,
+        message: "Exceeded the timeout",
+        timeout: timeout,
+        spent_time: (now - start_ms) / 1000
+    end
+
+    :ok
   end
 
   # Box quantity available: `LimitedSupplyBox.quantity_available/1` for boxes implementing the
@@ -101,13 +133,31 @@ defmodule ExBoxPacker.Packer do
     end)
   end
 
-  defp do_basic_packing(_boxes, [], _sorter, _strict?, _enforce_single?, _quantities, acc),
-    do: {acc, []}
+  defp do_basic_packing(
+         _boxes,
+         [],
+         _sorter,
+         _strict?,
+         _enforce_single?,
+         _quantities,
+         _timeout_ctx,
+         acc
+       ),
+       do: {acc, []}
 
-  defp do_basic_packing(boxes, items, sorter, strict?, enforce_single?, quantities, acc) do
+  defp do_basic_packing(
+         boxes,
+         items,
+         sorter,
+         strict?,
+         enforce_single?,
+         quantities,
+         timeout_ctx,
+         acc
+       ) do
     box_list = get_box_list(items, boxes, enforce_single?, quantities)
 
-    case collect_candidates(box_list, items, strict?) do
+    case collect_candidates(box_list, items, strict?, timeout_ctx) do
       [] ->
         {acc, items}
 
@@ -122,17 +172,20 @@ defmodule ExBoxPacker.Packer do
           strict?,
           enforce_single?,
           Map.update!(quantities, best.box, &decrement/1),
+          timeout_ctx,
           PackedBoxList.insert(acc, best)
         )
     end
   end
 
   # Trial-pack each box; collect non-empty results; stop early if one packs everything.
-  defp collect_candidates(box_list, items, strict?) do
+  # Faithful to `doBasicPacking`: `throwOnTimeout` is checked at the top of each box iteration.
+  defp collect_candidates(box_list, items, strict?, timeout_ctx) do
     total = length(items)
 
     box_list
     |> Enum.reduce_while([], fn box, acc ->
+      throw_on_timeout(timeout_ctx)
       packed = VolumePacker.pack(box, items, strict_ordering?: strict?)
       packed = LinkedItemGroupEnforcer.enforce_constraint(packed, items, strict?)
 

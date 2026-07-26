@@ -1,7 +1,7 @@
 defmodule ExBoxPacker.PackerTest do
   use ExUnit.Case, async: true
 
-  alias ExBoxPacker.{NoBoxesAvailableError, Packer, SimpleBox, SimpleItem}
+  alias ExBoxPacker.{NoBoxesAvailableError, Packer, SimpleBox, SimpleItem, TimeoutError}
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
   alias ExBoxPacker.Test.{LimitedSupplyTestBox, LinkedTestItem}
 
@@ -264,6 +264,23 @@ defmodule ExBoxPacker.PackerTest do
 
     # Linked pair together in one box, filler alone in the other.
     assert groups == [["A1", "A2"], ["Filler"]]
+  end
+
+  # Port of PackerTest::testTimeoutException. A `timeout: 0.0` makes the deadline "now", so
+  # the first per-box check in the trial-packing loop raises deterministically.
+  test "packing raises TimeoutError when the timeout is exceeded" do
+    boxes = [box("Box", 10, 10, 10, 0, 1000)]
+    items = List.duplicate(item("i", 1, 1, 1, 1, :best_fit), 20)
+    assert_raise TimeoutError, fn -> Packer.pack(boxes, items, timeout: 0.0) end
+  end
+
+  # Sanity: the timeout check is a no-op when no timeout is set (or a generous one),
+  # so the same input packs cleanly and does not false-positive.
+  test "packing succeeds without a timeout (or with a generous one)" do
+    boxes = [box("Box", 10, 10, 10, 0, 1000)]
+    items = List.duplicate(item("i", 1, 1, 1, 1, :best_fit), 20)
+    assert {:ok, %PackedBoxList{}} = Packer.pack(boxes, items)
+    assert {:ok, %PackedBoxList{}} = Packer.pack(boxes, items, timeout: 60.0)
   end
 
   defp linked_item(desc, width, group),

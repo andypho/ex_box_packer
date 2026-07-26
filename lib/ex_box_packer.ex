@@ -21,6 +21,7 @@ defmodule ExBoxPacker do
       Result.PackedItem,
       Result.PackedItemList,
       NoBoxesAvailableError,
+      TimeoutError,
       Sorting.ItemSorter,
       Sorting.DefaultItemSorter,
       Sorting.BoxSorter,
