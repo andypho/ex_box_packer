@@ -228,9 +228,21 @@ defmodule ExBoxPacker.Packer do
   defp decrement(:infinity), do: :infinity
   defp decrement(n), do: n - 1
 
+  # O(n) equivalent of `Enum.reduce(packed_items, items, &List.delete(&2, &1))`: build a
+  # frequency map of the packed items, then walk `items` once, dropping the first N
+  # occurrences of each packed value (N = its count) and keeping the rest in order. This
+  # yields the identical survivor list as the repeated first-occurrence `List.delete`.
   defp subtract_packed(items, %PackedBox{items: packed_list}) do
-    packed_list
-    |> PackedItemList.as_items()
-    |> Enum.reduce(items, fn packed_item, acc -> List.delete(acc, packed_item) end)
+    to_remove = packed_list |> PackedItemList.as_items() |> Enum.frequencies()
+
+    {kept, _} =
+      Enum.reduce(items, {[], to_remove}, fn item, {kept, counts} ->
+        case counts do
+          %{^item => n} when n > 0 -> {kept, Map.put(counts, item, n - 1)}
+          _ -> {[item | kept], counts}
+        end
+      end)
+
+    Enum.reverse(kept)
   end
 end
