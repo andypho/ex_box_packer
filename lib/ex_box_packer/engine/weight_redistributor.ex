@@ -64,7 +64,10 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
         do: {box_a, box_b, true},
         else: {box_b, box_a, false}
 
-    over_items = PackedItemList.as_items(over.items)
+    # Iterate the over box's items in BoxPacker's order (volume desc, then weight desc) —
+    # PHP's equaliseWeight reads asItemArray() after PackedItemList has been sorted in place,
+    # and it greedily moves the first beneficial items, so this order determines the split.
+    over_items = over.items |> PackedItemList.sorted() |> Enum.map(& &1.item)
     under_items = PackedItemList.as_items(under.items)
 
     # Iterate the ORIGINAL over_items in order, threading the mutating state.
