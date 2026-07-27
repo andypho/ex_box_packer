@@ -11,8 +11,7 @@ defmodule ExBoxPacker.Packer do
   Options: `:packed_box_sorter` (module, default `DefaultPackedBoxSorter`),
   `:strict_ordering?` (default `false`). Boxes implementing `ExBoxPacker.LimitedSupplyBox`
   are only used up to their available quantity. Items implementing `ExBoxPacker.LinkedItem`
-  are kept together via `ExBoxPacker.Engine.LinkedItemGroupEnforcer` (a linked group is
-  never split across boxes).
+  are kept together as linked-item groups (a linked group is never split across boxes).
 
   `:timeout` (number of SECONDS, default `nil` = unbounded) bounds packing time. When set,
   `ExBoxPacker.TimeoutError` is raised (it propagates from `pack/3`, `pack!/3` and

@@ -2,8 +2,8 @@ defmodule ExBoxPacker.SimpleItem do
   @moduledoc """
   A ready-made `ExBoxPacker.Item` implementation for the common case.
 
-  `quantity` is a convenience (default `1`) expanded to N identical units by
-  `ExBoxPacker.Engine.ItemList.from_items/2`. It is not part of the `Item` protocol.
+  `quantity` is a convenience (default `1`) expanded to N identical units during
+  packing. It is not part of the `Item` protocol.
   """
 
   defstruct description: nil,
