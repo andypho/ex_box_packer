@@ -1,9 +1,10 @@
 defmodule ExBoxPacker.Engine.WeightRedistributor do
   @moduledoc false
 
-  # Faithful functional port of BoxPacker's WeightRedistributor. Moves items from heavier
-  # boxes to lighter ones when it reduces the 2-box weight variance and the item still fits
-  # in a single box. Box-quantity tracking and linked-item handling are deferred (M5).
+  # Faithful functional port of BoxPacker's WeightRedistributor. For a pair of boxes it
+  # greedily moves ALL beneficial items from the heavier box to the lighter one (in original
+  # item order) whenever a move reduces the 2-box weight variance and the item still fits in a
+  # single box. LinkedItem members are never moved. Box-quantity tracking is deferred (M5).
 
   alias ExBoxPacker.{Item, Packer}
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
@@ -54,7 +55,8 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
     {:ok, new_list}
   end
 
-  # Try to move ONE beneficial item from the heavier of the two boxes to the lighter one.
+  # Greedily move ALL beneficial items from the heavier of the two boxes to the lighter one in
+  # a single call (port of PHP `equaliseWeight`'s `foreach ($overWeightBoxItems ...)` loop).
   # Returns {:ok, new_a, new_b} (either may be nil if that box is eliminated) or :none.
   defp equalise(box_a, box_b, target, boxes, sorter) do
     {over, under, over_is_a?} =
@@ -65,44 +67,70 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
     over_items = PackedItemList.as_items(over.items)
     under_items = PackedItemList.as_items(under.items)
 
-    move =
-      Enum.find_value(over_items, fn item ->
-        with true <- would_help?(over_items, item, under_items, target),
-             {lighter, []} <- repack(boxes, under_items ++ [item], sorter),
-             true <- PackedBoxList.count(lighter) == 1 do
-          {item, PackedBoxList.top(lighter)}
-        else
-          _ -> nil
-        end
+    # Iterate the ORIGINAL over_items in order, threading the mutating state.
+    result =
+      Enum.reduce(over_items, {over_items, under_items, over, under, false}, fn item, state ->
+        try_move(item, state, target, boxes, sorter)
       end)
 
-    case move do
-      nil ->
+    case result do
+      # A move eliminated the over box: over = nil, under = new_lighter.
+      {:eliminated, new_lighter} ->
+        put_back(over_is_a?, nil, new_lighter)
+
+      {_over_remaining, _under_current, _over_box, _under_box, false} ->
         :none
 
-      {item, new_lighter} ->
-        apply_over(List.delete(over_items, item), new_lighter, over_is_a?, boxes, sorter)
+      {_over_remaining, _under_current, over_box, under_box, true} ->
+        put_back(over_is_a?, over_box, under_box)
     end
   end
 
-  # Rebuild the over box from its remaining items (or eliminate it when empty).
-  defp apply_over([], new_lighter, over_is_a?, _boxes, _sorter) do
-    # over box eliminated
-    put_back(over_is_a?, nil, new_lighter)
+  # Once the over box has been eliminated, later iterations are no-ops.
+  defp try_move(_item, {:eliminated, _} = done, _target, _boxes, _sorter), do: done
+
+  defp try_move(item, state, target, boxes, sorter) do
+    {over_remaining, under_current, _over_box, _under_box, _any_moved?} = state
+
+    with false <- linked_item?(item),
+         true <- would_help?(over_remaining, item, under_current, target),
+         {lighter, []} <- repack(boxes, under_current ++ [item], sorter),
+         true <- PackedBoxList.count(lighter) == 1 do
+      new_lighter = PackedBoxList.top(lighter)
+      new_under_current = under_current ++ [item]
+
+      if List.delete(over_remaining, item) == [] do
+        # Over box held exactly this one item — the repack eliminated it.
+        {:eliminated, new_lighter}
+      else
+        new_over_remaining = List.delete(over_remaining, item)
+        finish_move(new_over_remaining, new_under_current, new_lighter, state, boxes, sorter)
+      end
+    else
+      # LinkedItem, not helpful, or would not fit in a single box — skip this item.
+      _ -> state
+    end
   end
 
-  defp apply_over(remaining_over, new_lighter, over_is_a?, boxes, sorter) do
-    with {heavier, []} <- repack(boxes, remaining_over, sorter),
+  # Repack the over box's remaining items; if they don't fit in exactly one box, revert (be
+  # defensive — PHP asserts n-1 always fits). Otherwise commit the move and continue.
+  defp finish_move(over_remaining, under_current, new_lighter, prev_state, boxes, sorter) do
+    with {heavier, []} <- repack(boxes, over_remaining, sorter),
          true <- PackedBoxList.count(heavier) == 1 do
-      put_back(over_is_a?, PackedBoxList.top(heavier), new_lighter)
+      {over_remaining, under_current, PackedBoxList.top(heavier), new_lighter, true}
     else
-      _ -> :none
+      _ -> prev_state
     end
   end
 
   # Map the new over/under boxes back to the a/b positions.
   defp put_back(true = _over_is_a?, new_over, new_under), do: {:ok, new_over, new_under}
   defp put_back(false, new_over, new_under), do: {:ok, new_under, new_over}
+
+  # Does `item` implement the optional LinkedItem protocol? Routed through `apply/3` for the
+  # same reason as Packer.initial_quantities (avoid a spurious unreachable-branch warning).
+  # credo:disable-for-next-line Credo.Check.Refactor.Apply
+  defp linked_item?(item), do: apply(ExBoxPacker.LinkedItem, :impl_for, [item]) != nil
 
   defp repack(boxes, items, sorter) do
     Packer.pack_all_possible(boxes, items, packed_box_sorter: sorter, enforce_single_box?: true)
