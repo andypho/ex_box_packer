@@ -69,7 +69,7 @@ defmodule ExBoxPacker.Engine.LinkedItemGroupEnforcer do
   # `excluded_groups` removed.
   defp build_eligible_items(remaining_items, excluded_groups) do
     Enum.reject(remaining_items, fn item ->
-      linked?(item) and Map.has_key?(excluded_groups, LinkedItem.linked_item_group(item))
+      linked?(item) and Map.has_key?(excluded_groups, linked_item_group(item))
     end)
   end
 
@@ -85,11 +85,17 @@ defmodule ExBoxPacker.Engine.LinkedItemGroupEnforcer do
 
   defp linked?(item), do: LinkedItem.impl_for(item) != nil
 
+  # Routed through `apply/3` so the compile-time type checker does not flag this optional
+  # extension protocol (only user/test code implements it). Every call is guarded by
+  # `linked?/1`; runtime behaviour is identical to a direct `LinkedItem.linked_item_group/1`.
+  # credo:disable-for-next-line Credo.Check.Refactor.Apply
+  defp linked_item_group(item), do: apply(LinkedItem, :linked_item_group, [item])
+
   # Map of group => count of items in `items` that implement LinkedItem with that group.
   defp linked_group_counts(items) do
     Enum.reduce(items, %{}, fn item, acc ->
       if linked?(item) do
-        Map.update(acc, LinkedItem.linked_item_group(item), 1, &(&1 + 1))
+        Map.update(acc, linked_item_group(item), 1, &(&1 + 1))
       else
         acc
       end
@@ -102,7 +108,7 @@ defmodule ExBoxPacker.Engine.LinkedItemGroupEnforcer do
       item = packed_item.item
 
       if linked?(item) do
-        Map.update(acc, LinkedItem.linked_item_group(item), 1, &(&1 + 1))
+        Map.update(acc, linked_item_group(item), 1, &(&1 + 1))
       else
         acc
       end

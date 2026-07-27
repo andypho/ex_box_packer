@@ -124,10 +124,18 @@ defmodule ExBoxPacker.Packer do
   # protocol, else `:infinity` (unlimited). Port of Packer's `boxQuantitiesAvailable` WeakMap.
   defp initial_quantities(boxes) do
     Map.new(boxes, fn box ->
+      # `impl_for/1` and `quantity_available/1` are routed through `apply/3` so the
+      # compile-time type checker does not treat this optional extension protocol (only
+      # user/test code implements it) as statically unimplemented — which would flag the
+      # `else` branch as unreachable. The `impl_for/1` guard and runtime behaviour are
+      # identical to direct calls.
+      # credo:disable-for-lines:5 Credo.Check.Refactor.Apply
       qty =
-        if LimitedSupplyBox.impl_for(box),
-          do: LimitedSupplyBox.quantity_available(box),
-          else: :infinity
+        if apply(LimitedSupplyBox, :impl_for, [box]) do
+          apply(LimitedSupplyBox, :quantity_available, [box])
+        else
+          :infinity
+        end
 
       {box, qty}
     end)

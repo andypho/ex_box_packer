@@ -99,7 +99,11 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   defp can_be_packed?(orientation, box, x, y, z, packed, true) do
     rotated = rotate_packed_list(packed)
 
-    ConstrainedPlacementItem.can_be_packed?(
+    # Routed through `apply/3` so the compile-time type checker does not flag this optional
+    # extension protocol (only user/test code implements it). Guarded by `impl_for/1` in
+    # `constrained?/2`; runtime behaviour is identical to a direct call.
+    # credo:disable-for-next-line Credo.Check.Refactor.Apply
+    apply(ConstrainedPlacementItem, :can_be_packed?, [
       orientation.item,
       PackedBox.new(box, rotated),
       y,
@@ -108,11 +112,14 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
       orientation.length,
       orientation.width,
       orientation.depth
-    )
+    ])
   end
 
   defp can_be_packed?(orientation, box, x, y, z, packed, false) do
-    ConstrainedPlacementItem.can_be_packed?(
+    # See the rotated clause above: routed through `apply/3` to avoid a compile-time type
+    # warning on this optional protocol; guarded by `impl_for/1` in `constrained?/2`.
+    # credo:disable-for-next-line Credo.Check.Refactor.Apply
+    apply(ConstrainedPlacementItem, :can_be_packed?, [
       orientation.item,
       PackedBox.new(box, packed),
       x,
@@ -121,7 +128,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
       orientation.width,
       orientation.length,
       orientation.depth
-    )
+    ])
   end
 
   defp rotate_packed_list(%PackedItemList{items: items}) do
