@@ -41,6 +41,7 @@ defmodule ExBoxPacker.MixProject do
   defp package do
     [
       licenses: ["MIT"],
+      files: ["lib", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md", ".formatter.exs"],
       links: %{
         "GitHub" => @source_url,
         "Original BoxPacker (PHP)" => "https://github.com/dvdoug/BoxPacker"
@@ -51,7 +52,7 @@ defmodule ExBoxPacker.MixProject do
   defp docs do
     [
       main: "ExBoxPacker",
-      extras: ["README.md"],
+      extras: ["README.md", "CHANGELOG.md", "LICENSE"],
       groups_for_modules: [
         Packing: [ExBoxPacker.Packer, ExBoxPacker.Engine.VolumePacker],
         "Items & Boxes": [
