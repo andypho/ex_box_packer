@@ -58,7 +58,8 @@ defmodule ExBoxPacker.Result.PackedBoxList do
 
     sum_sq =
       Enum.reduce(boxes, 0, fn box, acc ->
-        acc + :math.pow(PackedBox.weight(box) - mean, 2)
+        diff = PackedBox.weight(box) - mean
+        acc + diff * diff
       end)
 
     Rounding.round_half_up(sum_sq / length(boxes), 1)

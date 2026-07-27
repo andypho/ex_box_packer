@@ -158,6 +158,7 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
   # so one term suffices (matches PHP's calculateVariance).
   defp variance(a_weight, b_weight) do
     mean = (a_weight + b_weight) / 2
-    :math.pow(a_weight - mean, 2)
+    diff = a_weight - mean
+    diff * diff
   end
 end
