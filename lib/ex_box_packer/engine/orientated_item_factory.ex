@@ -2,7 +2,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   @moduledoc false
 
   alias ExBoxPacker.{Box, ConstrainedPlacementItem, Item}
-  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemSorter, WorkingVolume}
+  alias ExBoxPacker.Engine.{Cache, OrientatedItem, OrientatedItemSorter, WorkingVolume}
   alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList}
 
   @type dims :: {integer(), integer(), integer()}
@@ -164,14 +164,21 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   @doc "True if `item` has at least one stable orientation when placed in an empty `box`."
   @spec has_stable_orientations_in_empty_box?(Box.t(), Item.t()) :: boolean()
   def has_stable_orientations_in_empty_box?(box, item) do
-    # Mirror PHP passing new PackedItemList() with x=y=z=0 and box_rotated?=false.
-    item
-    |> possible_orientations(
-      nil,
-      {Box.inner_width(box), Box.inner_length(box), Box.inner_depth(box)},
-      %{box: box, x: 0, y: 0, z: 0, packed: PackedItemList.new(), box_rotated?: false}
-    )
-    |> Enum.any?(&OrientatedItem.stable?/1)
+    key =
+      {:empty_stable, Item.width(item), Item.length(item), Item.depth(item),
+       Item.allowed_rotation(item), Box.inner_width(box), Box.inner_length(box),
+       Box.inner_depth(box)}
+
+    Cache.get_or_compute(key, fn ->
+      # Mirror PHP passing new PackedItemList() with x=y=z=0 and box_rotated?=false.
+      item
+      |> possible_orientations(
+        nil,
+        {Box.inner_width(box), Box.inner_length(box), Box.inner_depth(box)},
+        %{box: box, x: 0, y: 0, z: 0, packed: PackedItemList.new(), box_rotated?: false}
+      )
+      |> Enum.any?(&OrientatedItem.stable?/1)
+    end)
   end
 
   @doc """

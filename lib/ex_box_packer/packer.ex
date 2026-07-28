@@ -23,6 +23,7 @@ defmodule ExBoxPacker.Packer do
 
   alias ExBoxPacker.Engine.{
     BoxList,
+    Cache,
     ItemList,
     LinkedItemGroupEnforcer,
     VolumePacker,
@@ -36,12 +37,14 @@ defmodule ExBoxPacker.Packer do
   @spec pack([Box.t()], [Item.t()], keyword()) ::
           {:ok, PackedBoxList.t()} | {:error, Exception.t()}
   def pack(boxes, items, opts \\ []) do
-    {packed, leftover} = do_pack(boxes, items, opts)
+    Cache.with_cache(fn ->
+      {packed, leftover} = do_pack(boxes, items, opts)
 
-    case leftover do
-      [] -> {:ok, maybe_redistribute(packed, boxes, opts)}
-      _ -> {:error, NoBoxesAvailableError.exception(leftover)}
-    end
+      case leftover do
+        [] -> {:ok, maybe_redistribute(packed, boxes, opts)}
+        _ -> {:error, NoBoxesAvailableError.exception(leftover)}
+      end
+    end)
   end
 
   defp maybe_redistribute(packed, boxes, opts) do
@@ -71,7 +74,9 @@ defmodule ExBoxPacker.Packer do
 
   @doc "Pack as much as possible; never errors. Returns `{PackedBoxList, leftover_items}`."
   @spec pack_all_possible([Box.t()], [Item.t()], keyword()) :: {PackedBoxList.t(), [Item.t()]}
-  def pack_all_possible(boxes, items, opts \\ []), do: do_pack(boxes, items, opts)
+  def pack_all_possible(boxes, items, opts \\ []) do
+    Cache.with_cache(fn -> do_pack(boxes, items, opts) end)
+  end
 
   defp do_pack(boxes, items, opts) do
     sorter = Keyword.get(opts, :packed_box_sorter, DefaultPackedBoxSorter)

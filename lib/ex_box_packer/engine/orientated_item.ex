@@ -1,6 +1,7 @@
 defmodule ExBoxPacker.Engine.OrientatedItem do
   @moduledoc false
 
+  alias ExBoxPacker.Engine.Cache
   alias ExBoxPacker.Item
 
   @enforce_keys [:item, :width, :length, :depth, :surface_footprint]
@@ -28,8 +29,10 @@ defmodule ExBoxPacker.Engine.OrientatedItem do
   @doc "True if the orientation has a low enough centre of gravity to be stable."
   @spec stable?(t()) :: boolean()
   def stable?(%__MODULE__{width: w, length: l, depth: d}) do
-    denom = if d == 0, do: 1, else: d
-    :math.atan(min(l, w) / denom) > 0.261
+    Cache.get_or_compute({:stable, w, l, d}, fn ->
+      denom = if d == 0, do: 1, else: d
+      :math.atan(min(l, w) / denom) > 0.261
+    end)
   end
 
   @doc "True if `item` has the same set of dimensions (in any order) as this orientation."

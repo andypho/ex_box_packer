@@ -2,7 +2,16 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
   @moduledoc false
 
   import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
-  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory, VolumePacker, WorkingVolume}
+
+  alias ExBoxPacker.Engine.{
+    Cache,
+    OrientatedItem,
+    OrientatedItemFactory,
+    VolumePacker,
+    WorkingVolume
+  }
+
+  alias ExBoxPacker.Item
 
   # Look-ahead simulation caps the number of following items considered, matching
   # BoxPacker's `topN(8)` to keep the recursive partial pack bounded.
@@ -69,32 +78,51 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
 
   defp additional_packed(prev_orientation, ctx) do
     current_row_length = max(prev_orientation.length, ctx.row_length)
-    items_to_pack = Enum.take(ctx.next_items, @lookahead_item_cap)
 
-    row_box = %WorkingVolume{
-      width: ctx.width_left - prev_orientation.width,
-      length: current_row_length,
-      depth: ctx.depth_left,
-      max_weight: @lookahead_max_weight
-    }
+    item_sig =
+      ctx.next_items
+      |> Enum.take(@lookahead_item_cap)
+      |> Enum.map(
+        &{Item.width(&1), Item.length(&1), Item.depth(&1), Item.weight(&1),
+         Item.allowed_rotation(&1)}
+      )
 
-    row_packed = VolumePacker.pack(row_box, items_to_pack, single_pass?: true)
-    remaining = subtract_packed(items_to_pack, row_packed)
+    # The result is `length(next_items) - length(remaining2)`; `remaining2` depends only on the
+    # first `@lookahead_item_cap` items (captured by `item_sig`), but the offset uses the FULL
+    # tail length, so include it in the key to stay byte-for-byte identical to the uncached path.
+    key =
+      {:lookahead, ctx.width_left, ctx.length_left, prev_orientation.width,
+       prev_orientation.length, current_row_length, ctx.depth_left, length(ctx.next_items),
+       item_sig}
 
-    rows_box = %WorkingVolume{
-      width: ctx.width_left,
-      length: ctx.length_left - current_row_length,
-      depth: ctx.depth_left,
-      max_weight: @lookahead_max_weight
-    }
+    Cache.get_or_compute(key, fn ->
+      items_to_pack = Enum.take(ctx.next_items, @lookahead_item_cap)
 
-    rows_packed = VolumePacker.pack(rows_box, remaining, single_pass?: true)
-    remaining2 = subtract_packed(remaining, rows_packed)
+      row_box = %WorkingVolume{
+        width: ctx.width_left - prev_orientation.width,
+        length: current_row_length,
+        depth: ctx.depth_left,
+        max_weight: @lookahead_max_weight
+      }
 
-    # Matches PHP `nextItems.count() - itemsToPack.count()`: items beyond the cap count as
-    # packed too. This offset is identical for both compared orientations, so it does not
-    # affect the tiebreak, but we mirror the source exactly.
-    length(ctx.next_items) - length(remaining2)
+      row_packed = VolumePacker.pack(row_box, items_to_pack, single_pass?: true)
+      remaining = subtract_packed(items_to_pack, row_packed)
+
+      rows_box = %WorkingVolume{
+        width: ctx.width_left,
+        length: ctx.length_left - current_row_length,
+        depth: ctx.depth_left,
+        max_weight: @lookahead_max_weight
+      }
+
+      rows_packed = VolumePacker.pack(rows_box, remaining, single_pass?: true)
+      remaining2 = subtract_packed(remaining, rows_packed)
+
+      # Matches PHP `nextItems.count() - itemsToPack.count()`: items beyond the cap count as
+      # packed too. This offset is identical for both compared orientations, so it does not
+      # affect the tiebreak, but we mirror the source exactly.
+      length(ctx.next_items) - length(remaining2)
+    end)
   end
 
   defp subtract_packed(items, %{items: %{items: packed}}) do
