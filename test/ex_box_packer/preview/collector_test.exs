@@ -3,7 +3,7 @@ defmodule ExBoxPacker.Preview.CollectorTest do
   alias ExBoxPacker.Preview.Collector
 
   defp payload(tag), do: %{"items" => [[tag, 1, 1, 1]], "boxes" => []}
-  defp summary(), do: %{boxes: 1, items: 1, utilisation: 1.0}
+  defp summary, do: %{boxes: 1, items: 1, utilisation: 1.0}
 
   setup do
     start_supervised!({Collector, [max_packings: 3]})

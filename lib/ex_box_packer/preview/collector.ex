@@ -29,14 +29,22 @@ defmodule ExBoxPacker.Preview.Collector do
 
   @impl true
   def init(opts) do
-    max = opts[:max_packings] || Application.get_env(:ex_box_packer, __MODULE__, [])[:max_packings] || @default_max
+    max =
+      opts[:max_packings] || Application.get_env(:ex_box_packer, __MODULE__, [])[:max_packings] ||
+        @default_max
+
     {:ok, %{packings: [], max: max, subscribers: MapSet.new()}}
   end
 
   @impl true
   def handle_cast({:capture, payload, summary, label}, state) do
-    entry = %{id: System.unique_integer([:positive, :monotonic]), inserted_at: System.system_time(:millisecond),
-              label: label, summary: summary}
+    entry = %{
+      id: System.unique_integer([:positive, :monotonic]),
+      inserted_at: System.system_time(:millisecond),
+      label: label,
+      summary: summary
+    }
+
     stored = Map.put(entry, :payload, payload)
     packings = [stored | state.packings] |> Enum.take(state.max)
     for pid <- state.subscribers, do: send(pid, {:preview_packing, Map.delete(entry, :payload)})
@@ -45,7 +53,8 @@ defmodule ExBoxPacker.Preview.Collector do
 
   @impl true
   def handle_call(:list, _from, state) do
-    {:reply, Enum.map(state.packings, &Map.take(&1, [:id, :inserted_at, :label, :summary])), state}
+    {:reply, Enum.map(state.packings, &Map.take(&1, [:id, :inserted_at, :label, :summary])),
+     state}
   end
 
   def handle_call({:get, id}, _from, state) do

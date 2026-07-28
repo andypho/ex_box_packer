@@ -20,8 +20,12 @@ defmodule ExBoxPacker.Preview.Payload do
           {entries, index_of}
         else
           idx = map_size(index_of)
-          {[{idx, [Item.description(item), Item.width(item), Item.length(item), Item.depth(item)]} | entries],
-           Map.put(index_of, item, idx)}
+
+          {[
+             {idx,
+              [Item.description(item), Item.width(item), Item.length(item), Item.depth(item)]}
+             | entries
+           ], Map.put(index_of, item, idx)}
         end
       end)
 
@@ -31,9 +35,14 @@ defmodule ExBoxPacker.Preview.Payload do
     }
   end
 
-  @spec summary(PackedBoxList.t()) :: %{boxes: non_neg_integer(), items: non_neg_integer(), utilisation: float()}
+  @spec summary(PackedBoxList.t()) :: %{
+          boxes: non_neg_integer(),
+          items: non_neg_integer(),
+          utilisation: float()
+        }
   def summary(%PackedBoxList{} = pbl) do
     boxes = PackedBoxList.to_list(pbl)
+
     %{
       boxes: length(boxes),
       items: Enum.reduce(boxes, 0, fn pb, acc -> acc + PackedItemList.count(pb.items) end),
@@ -45,11 +54,20 @@ defmodule ExBoxPacker.Preview.Payload do
     placed =
       pb
       |> placement_ordered()
-      |> Enum.map(fn pi -> [Map.fetch!(index_of, pi.item), pi.x, pi.y, pi.z, pi.width, pi.length, pi.depth] end)
+      |> Enum.map(fn pi ->
+        [Map.fetch!(index_of, pi.item), pi.x, pi.y, pi.z, pi.width, pi.length, pi.depth]
+      end)
 
-    [Box.reference(box), Box.inner_width(box), Box.inner_length(box), Box.inner_depth(box), placed]
+    [
+      Box.reference(box),
+      Box.inner_width(box),
+      Box.inner_length(box),
+      Box.inner_depth(box),
+      placed
+    ]
   end
 
   # PackedItemList stores items newest-first (prepend on insert); reversing gives placement order.
-  defp placement_ordered(%PackedBox{items: %PackedItemList{items: items}}), do: Enum.reverse(items)
+  defp placement_ordered(%PackedBox{items: %PackedItemList{items: items}}),
+    do: Enum.reverse(items)
 end
