@@ -8,7 +8,7 @@ defmodule ExBoxPacker.MixProject do
     [
       app: :ex_box_packer,
       version: @version,
-      elixir: "~> 1.20",
+      elixir: "~> 1.15",
       compilers: [:boundary] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

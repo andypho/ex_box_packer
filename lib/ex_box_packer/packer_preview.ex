@@ -21,9 +21,17 @@ if Code.ensure_loaded?(Plug) do
     plug(:dispatch)
 
     get "/" do
+      # Inject the mount path (from script_name) so asset/API URLs are absolute and work
+      # regardless of a trailing slash on the mount point (e.g. forwarded at "/dev/box-packer").
+      base = "/" <> Enum.join(conn.script_name, "/")
+      base = if base == "/", do: "", else: base
+
+      html =
+        @static_dir |> Path.join("index.html") |> File.read!() |> String.replace("{{BASE}}", base)
+
       conn
       |> put_resp_content_type("text/html")
-      |> send_file(200, Path.join(@static_dir, "index.html"))
+      |> send_resp(200, html)
     end
 
     get "/api/packings" do
