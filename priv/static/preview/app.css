@@ -1,1 +1,10 @@
-/* styles added in Layer C */
+* { box-sizing: border-box; }
+body { margin: 0; display: flex; height: 100vh; font: 14px system-ui, sans-serif; }
+#list { width: 240px; overflow-y: auto; border-right: 1px solid #ddd; padding: 8px; }
+#list h1 { font-size: 14px; }
+#packings { list-style: none; margin: 0; padding: 0; }
+#packings li { padding: 6px; cursor: pointer; border-radius: 4px; }
+#packings li:hover, #packings li.active { background: #eef; }
+main { flex: 1; display: flex; flex-direction: column; }
+#controls { padding: 8px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #ddd; }
+#scene { flex: 1; }

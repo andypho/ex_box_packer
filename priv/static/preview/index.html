@@ -1,1 +1,23 @@
-<!doctype html><title>ex_box_packer preview</title>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ex_box_packer — packing preview</title>
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <aside id="list"><h1>Packings</h1><ul id="packings"></ul></aside>
+    <main>
+      <div id="controls">
+        <button id="play">Play</button><button id="step">Step</button>
+        <input id="scrub" type="range" min="0" max="0" value="0" />
+        <label>Speed <input id="speed" type="range" min="1" max="20" value="6" /></label>
+        <select id="box-select"></select>
+        <span id="stats"></span>
+      </div>
+      <div id="scene"></div>
+    </main>
+    <script src="assets/vendor/three.min.js"></script>
+    <script src="assets/viewer.js"></script>
+  </body>
+</html>
