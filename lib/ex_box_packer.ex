@@ -44,6 +44,7 @@ defmodule ExBoxPacker do
   use Boundary,
     deps: [],
     exports: [
+      PackerPreview,
       Packer,
       Engine.VolumePacker,
       Item,
@@ -54,6 +55,8 @@ defmodule ExBoxPacker do
       SimpleItem,
       SimpleBox,
       Rotation,
+      Preview,
+      Preview.Collector,
       Result.PackedBox,
       Result.PackedBoxList,
       Result.PackedItem,
