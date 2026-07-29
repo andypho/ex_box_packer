@@ -16,6 +16,10 @@ defmodule ExBoxPacker.Preview.Collector do
   def capture(payload, summary, opts \\ []),
     do: GenServer.cast(__MODULE__, {:capture, payload, summary, opts[:label]})
 
+  @doc "Like `capture/3` but synchronous; returns the assigned packing id."
+  def capture_sync(payload, summary, opts \\ []),
+    do: GenServer.call(__MODULE__, {:capture_sync, payload, summary, opts[:label]})
+
   @doc "Recent packings, newest first — summaries only (`%{id, inserted_at, label, summary}`)."
   def list, do: GenServer.call(__MODULE__, :list)
 
@@ -38,17 +42,14 @@ defmodule ExBoxPacker.Preview.Collector do
 
   @impl true
   def handle_cast({:capture, payload, summary, label}, state) do
-    entry = %{
-      id: System.unique_integer([:positive, :monotonic]),
-      inserted_at: System.system_time(:millisecond),
-      label: label,
-      summary: summary
-    }
+    {_id, state} = store(payload, summary, label, state)
+    {:noreply, state}
+  end
 
-    stored = Map.put(entry, :payload, payload)
-    packings = [stored | state.packings] |> Enum.take(state.max)
-    for pid <- state.subscribers, do: send(pid, {:preview_packing, Map.delete(entry, :payload)})
-    {:noreply, %{state | packings: packings}}
+  @impl true
+  def handle_call({:capture_sync, payload, summary, label}, _from, state) do
+    {id, state} = store(payload, summary, label, state)
+    {:reply, id, state}
   end
 
   @impl true
@@ -64,6 +65,22 @@ defmodule ExBoxPacker.Preview.Collector do
   def handle_call({:subscribe, pid}, _from, state) do
     Process.monitor(pid)
     {:reply, :ok, %{state | subscribers: MapSet.put(state.subscribers, pid)}}
+  end
+
+  defp store(payload, summary, label, state) do
+    id = System.unique_integer([:positive, :monotonic])
+
+    entry = %{
+      id: id,
+      inserted_at: System.system_time(:millisecond),
+      label: label,
+      summary: summary
+    }
+
+    stored = Map.put(entry, :payload, payload)
+    packings = [stored | state.packings] |> Enum.take(state.max)
+    for pid <- state.subscribers, do: send(pid, {:preview_packing, Map.delete(entry, :payload)})
+    {id, %{state | packings: packings}}
   end
 
   @impl true

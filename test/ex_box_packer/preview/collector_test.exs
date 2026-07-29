@@ -30,4 +30,11 @@ defmodule ExBoxPacker.Preview.CollectorTest do
     Collector.capture(payload("x"), summary(), label: "x")
     assert_receive {:preview_packing, %{label: "x"}}
   end
+
+  test "capture_sync stores and returns the assigned id" do
+    id = Collector.capture_sync(payload("s"), summary(), label: "s")
+    assert is_integer(id)
+    assert %{"items" => [["s", 1, 1, 1]], "boxes" => []} = Collector.get(id)
+    assert [%{label: "s", id: ^id}] = Collector.list()
+  end
 end
