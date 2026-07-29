@@ -7,7 +7,27 @@
     <link rel="stylesheet" href="{{BASE}}/assets/app.css" />
   </head>
   <body>
-    <aside id="list"><h1>Packings</h1><ul id="packings"></ul></aside>
+    <aside id="list">
+      <button id="new-toggle">＋ New packing</button>
+      <form id="builder" hidden>
+        <div class="grp">
+          <div class="grp-head"><span>Boxes</span><button type="button" id="add-box">+ Add box</button></div>
+          <div id="boxes"></div>
+        </div>
+        <div class="grp">
+          <div class="grp-head"><span>Items</span><button type="button" id="add-item">+ Add item</button></div>
+          <div id="items"></div>
+        </div>
+        <p class="hint">dimensions in mm, weight in g</p>
+        <div class="grp-actions">
+          <button type="button" id="load-example">Load example</button>
+          <button type="submit" id="pack">Pack ▶</button>
+        </div>
+        <p id="builder-error" class="err" hidden></p>
+      </form>
+      <h1>Packings</h1>
+      <ul id="packings"></ul>
+    </aside>
     <main>
       <div id="controls">
         <button id="play">Play</button><button id="step">Step</button>

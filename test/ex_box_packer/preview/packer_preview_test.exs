@@ -135,4 +135,10 @@ defmodule ExBoxPacker.PackerPreviewTest do
     refute conn.resp_body =~ "{{CSRF}}"
     refute conn.resp_body =~ "{{BASE}}"
   end
+
+  test "GET / includes the sandbox builder form" do
+    conn = ExBoxPacker.PackerPreview.call(conn(:get, "/"), @opts)
+    assert conn.resp_body =~ ~s(id="builder")
+    assert conn.resp_body =~ "Load example"
+  end
 end
