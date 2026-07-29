@@ -13,7 +13,8 @@ if Code.ensure_loaded?(Plug) do
     """
     use Plug.Router
 
-    alias ExBoxPacker.Preview.Collector
+    alias ExBoxPacker.Packer
+    alias ExBoxPacker.Preview.{Collector, Payload, Spec}
 
     @static_dir Application.app_dir(:ex_box_packer, "priv/static/preview")
 
@@ -27,7 +28,11 @@ if Code.ensure_loaded?(Plug) do
       base = if base == "/", do: "", else: base
 
       html =
-        @static_dir |> Path.join("index.html") |> File.read!() |> String.replace("{{BASE}}", base)
+        @static_dir
+        |> Path.join("index.html")
+        |> File.read!()
+        |> String.replace("{{BASE}}", base)
+        |> String.replace("{{CSRF}}", Plug.CSRFProtection.get_csrf_token())
 
       conn
       |> put_resp_content_type("text/html")
@@ -48,6 +53,29 @@ if Code.ensure_loaded?(Plug) do
 
         _ ->
           send_json(conn, 404, %{"error" => "not found"})
+      end
+    end
+
+    post "/api/pack" do
+      # No opts are passed to Packer.pack/2, so it returns {:error, exception} rather than
+      # raising (a `:timeout` opt is the only thing that makes it raise TimeoutError). Keep it
+      # that way, or the `else` below — which handles returned errors, not raised ones — will
+      # let the exception escape as a 500.
+      with {:ok, params} <- read_spec(conn),
+           {:ok, {boxes, items}} <- Spec.decode(params),
+           {:ok, result} <- Packer.pack(boxes, items) do
+        id =
+          Collector.capture_sync(Payload.build(result), Payload.summary(result),
+            label: params["label"]
+          )
+
+        send_json(conn, 200, %{ok: true, id: id})
+      else
+        {:error, %{__exception__: true} = e} ->
+          send_json(conn, 422, %{ok: false, error: Exception.message(e)})
+
+        {:error, message} when is_binary(message) ->
+          send_json(conn, 422, %{ok: false, error: message})
       end
     end
 
@@ -84,6 +112,30 @@ if Code.ensure_loaded?(Plug) do
 
     match _ do
       send_resp(conn, 404, "not found")
+    end
+
+    # The host endpoint may already have parsed a JSON body (Phoenix's Plug.Parsers),
+    # in which case it is in conn.body_params. Otherwise read and decode the raw body.
+    defp read_spec(conn) do
+      case conn.body_params do
+        %Plug.Conn.Unfetched{} -> read_raw(conn)
+        params when is_map(params) and map_size(params) > 0 -> {:ok, params}
+        _ -> read_raw(conn)
+      end
+    end
+
+    defp read_raw(conn) do
+      case read_body(conn) do
+        {:ok, body, _conn} when byte_size(body) > 0 ->
+          try do
+            {:ok, :json.decode(body)}
+          rescue
+            _ -> {:error, "invalid JSON body"}
+          end
+
+        _ ->
+          {:error, "invalid JSON body"}
+      end
     end
 
     defp send_json(conn, status, data) do

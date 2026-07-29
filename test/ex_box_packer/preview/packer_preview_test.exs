@@ -13,6 +13,14 @@ defmodule ExBoxPacker.PackerPreviewTest do
     :ok
   end
 
+  defp post_pack(spec) do
+    body = IO.iodata_to_binary(:json.encode(spec))
+
+    conn(:post, "/api/pack", body)
+    |> put_req_header("content-type", "application/json")
+    |> ExBoxPacker.PackerPreview.call(@opts)
+  end
+
   test "GET / serves the HTML shell" do
     conn = ExBoxPacker.PackerPreview.call(conn(:get, "/"), @opts)
     assert conn.status == 200
@@ -75,5 +83,56 @@ defmodule ExBoxPacker.PackerPreviewTest do
   test "unknown route returns 404" do
     conn = ExBoxPacker.PackerPreview.call(conn(:get, "/unknown"), @opts)
     assert conn.status == 404
+  end
+
+  test "POST /api/pack packs a valid spec, stores it, and returns {ok, id}" do
+    spec = %{
+      "label" => "sandbox",
+      "boxes" => [%{"reference" => "B", "width" => 100, "length" => 100, "depth" => 100, "max_weight" => 22_000}],
+      "items" => [%{"description" => "w", "width" => 40, "length" => 40, "depth" => 40, "weight" => 100, "quantity" => 2, "rotation" => "best_fit"}]
+    }
+
+    conn = post_pack(spec)
+    assert conn.status == 200
+    assert %{"ok" => true, "id" => id} = :json.decode(conn.resp_body)
+    assert is_integer(id)
+    assert %{"boxes" => [_ | _]} = Collector.get(id)
+  end
+
+  test "POST /api/pack with an invalid spec returns 422 with a message" do
+    conn = post_pack(%{"boxes" => [], "items" => []})
+    assert conn.status == 422
+    assert %{"ok" => false, "error" => msg} = :json.decode(conn.resp_body)
+    assert msg =~ "at least one box"
+  end
+
+  test "POST /api/pack with a box over the AusPost limit returns 422" do
+    spec = %{
+      "boxes" => [%{"reference" => "Long", "width" => 1200, "length" => 100, "depth" => 100}],
+      "items" => [%{"description" => "w", "width" => 10, "length" => 10, "depth" => 10, "weight" => 1}]
+    }
+
+    conn = post_pack(spec)
+    assert conn.status == 422
+    assert %{"ok" => false, "error" => msg} = :json.decode(conn.resp_body)
+    assert msg =~ "longest side 1200 mm > 1050 mm"
+  end
+
+  test "POST /api/pack with an item too large for any box returns 422" do
+    spec = %{
+      "boxes" => [%{"reference" => "B", "width" => 10, "length" => 10, "depth" => 10}],
+      "items" => [%{"description" => "big", "width" => 100, "length" => 100, "depth" => 100, "weight" => 1}]
+    }
+
+    conn = post_pack(spec)
+    assert conn.status == 422
+    assert %{"ok" => false} = :json.decode(conn.resp_body)
+  end
+
+  test "GET / injects a csrf-token meta tag (no template placeholders left)" do
+    conn = ExBoxPacker.PackerPreview.call(conn(:get, "/"), @opts)
+    assert conn.resp_body =~ ~s(name="csrf-token")
+    refute conn.resp_body =~ "{{CSRF}}"
+    refute conn.resp_body =~ "{{BASE}}"
   end
 end
