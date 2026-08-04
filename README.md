@@ -5,11 +5,6 @@ bin-packing and box-selection engine. Given a set of items and a catalog of boxe
 how to physically arrange the items inside them (rotation, weight limits, weight distribution, stability, and
 placement constraints).
 
-> **Status: v0.1.0 — feature-complete.** The full engine is implemented: box selection, 3D packing
-> (`ExBoxPacker.VolumePacker` / `Packer`), rotation modes, weight limits + redistribution, and placement
-> constraints — with the BoxPacker test suite ported (155 tests) and golden-benchmark parity against BoxPacker.
-> An optional dev-only 3D packing preview lives under `ExBoxPacker.PackerPreview`. Not yet published to Hex.
-
 ## Requirements
 
 - **Supported:** Elixir `~> 1.15` (the `mix.exs` requirement — kept low so apps on older Elixir can depend on it).
