@@ -1,0 +1,8 @@
+# Vendored, minified third-party library — never reformat.
+priv/static/preview/vendor/
+
+# Build / dependency / generated output.
+/_build/
+/deps/
+/doc/
+/cover/

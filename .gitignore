@@ -25,3 +25,6 @@ ex_box_packer-*.tar
 # Local working docs — not committed.
 /docs/*
 
+# Dev-only JS tooling (Prettier for the preview assets).
+/node_modules/
+

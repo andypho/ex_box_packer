@@ -9,7 +9,9 @@ const el = (id) => document.getElementById(id);
 // Stable colour per item description.
 const palette = {};
 const colorFor = (desc) =>
-  (palette[desc] = palette[desc] || new THREE.Color().setHSL((Object.keys(palette).length * 0.13) % 1, 0.55, 0.55));
+  (palette[desc] =
+    palette[desc] ||
+    new THREE.Color().setHSL((Object.keys(palette).length * 0.13) % 1, 0.55, 0.55));
 
 export function createViewer() {
   const container = el("scene");
@@ -19,7 +21,12 @@ export function createViewer() {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
   container.appendChild(renderer.domElement);
-  const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 1, 100000);
+  const camera = new THREE.PerspectiveCamera(
+    55,
+    container.clientWidth / container.clientHeight,
+    1,
+    100000,
+  );
   scene.add(new THREE.AmbientLight(0xffffff, 0.7));
   const dir = new THREE.DirectionalLight(0xffffff, 0.6);
   dir.position.set(1, 2, 1.5);
@@ -27,15 +34,20 @@ export function createViewer() {
 
   // --- orbit/zoom camera (static by default; drag to rotate, wheel/buttons to zoom) ---
   const target = new THREE.Vector3();
-  const MIN_PHI = 0.05, MAX_PHI = Math.PI - 0.05;
-  let theta = Math.PI / 4, phi = Math.PI / 3.2, radius = 100, minRadius = 1, maxRadius = 1e6;
+  const MIN_PHI = 0.05,
+    MAX_PHI = Math.PI - 0.05;
+  let theta = Math.PI / 4,
+    phi = Math.PI / 3.2,
+    radius = 100,
+    minRadius = 1,
+    maxRadius = 1e6;
 
   function updateCamera() {
     const s = radius * Math.sin(phi);
     camera.position.set(
       target.x + s * Math.sin(theta),
       target.y + radius * Math.cos(phi),
-      target.z + s * Math.cos(theta)
+      target.z + s * Math.cos(theta),
     );
     camera.lookAt(target);
   }
@@ -60,7 +72,8 @@ export function createViewer() {
   let group = new THREE.Group();
   scene.add(group);
   let meshes = []; // item cuboids in placement order
-  let shown = 0, playing = false;
+  let shown = 0,
+    playing = false;
 
   function clear() {
     scene.remove(group);
@@ -72,14 +85,21 @@ export function createViewer() {
 
   function addBox(iw, il, id) {
     const geo = new THREE.BoxGeometry(iw, id, il);
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x333333 }));
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: 0x333333 }),
+    );
     edges.position.set(iw / 2, id / 2, il / 2);
     group.add(edges);
     frameCamera(iw, il, id);
   }
 
   function addItem([desc, x, y, z, w, l, d]) {
-    const mat = new THREE.MeshLambertMaterial({ color: colorFor(desc), transparent: true, opacity: 0.9 });
+    const mat = new THREE.MeshLambertMaterial({
+      color: colorFor(desc),
+      transparent: true,
+      opacity: 0.9,
+    });
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, d, l), mat);
     mesh.position.set(x + w / 2, z + d / 2, y + l / 2);
     mesh.visible = false;
@@ -116,9 +136,13 @@ export function createViewer() {
   // drag to rotate, wheel or +/- buttons to zoom
   const canvas = renderer.domElement;
   canvas.style.cursor = "grab";
-  let dragging = false, lastX = 0, lastY = 0;
+  let dragging = false,
+    lastX = 0,
+    lastY = 0;
   canvas.addEventListener("pointerdown", (e) => {
-    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
     canvas.style.cursor = "grabbing";
   });
@@ -126,15 +150,27 @@ export function createViewer() {
     if (!dragging) return;
     theta -= (e.clientX - lastX) * 0.01;
     phi = Math.min(MAX_PHI, Math.max(MIN_PHI, phi - (e.clientY - lastY) * 0.01));
-    lastX = e.clientX; lastY = e.clientY;
+    lastX = e.clientX;
+    lastY = e.clientY;
     updateCamera();
   });
   canvas.addEventListener("pointerup", (e) => {
-    dragging = false; canvas.style.cursor = "grab";
+    dragging = false;
+    canvas.style.cursor = "grab";
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
   });
-  canvas.addEventListener("pointercancel", () => { dragging = false; canvas.style.cursor = "grab"; });
-  canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.1 : 0.9); }, { passive: false });
+  canvas.addEventListener("pointercancel", () => {
+    dragging = false;
+    canvas.style.cursor = "grab";
+  });
+  canvas.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      zoom(e.deltaY > 0 ? 1.1 : 0.9);
+    },
+    { passive: false },
+  );
   el("zoom-in").onclick = () => zoom(0.85);
   el("zoom-out").onclick = () => zoom(1.15);
 
@@ -153,7 +189,10 @@ export function createViewer() {
       if (acc >= 21 - +el("speed").value) {
         acc = 0;
         reveal(shown + 1);
-        if (shown >= meshes.length) { playing = false; el("play").textContent = "Play"; }
+        if (shown >= meshes.length) {
+          playing = false;
+          el("play").textContent = "Play";
+        }
       }
     }
     renderer.render(scene, camera);

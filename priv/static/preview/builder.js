@@ -11,7 +11,9 @@ const PRESETS = {
   "AusPost X-Large": { width: 500, length: 440, depth: 350 },
 };
 // Australia Post "Within Australia" parcel limits (mm / mm³ / grams) — mirror the server checks.
-const MAX_WEIGHT_G = 22000, MAX_LEN_MM = 1050, MAX_VOL_MM3 = 250000000;
+const MAX_WEIGHT_G = 22000,
+  MAX_LEN_MM = 1050,
+  MAX_VOL_MM3 = 250000000;
 
 function mkInput(type, name, value) {
   const i = document.createElement("input");
@@ -48,10 +50,19 @@ function boxRow(data = {}) {
   const l = mkInput("number", "length", data.length || "");
   const d = mkInput("number", "depth", data.depth || "");
   const mw = mkInput("number", "max_weight", data.max_weight || MAX_WEIGHT_G);
-  w.placeholder = "W"; l.placeholder = "L"; d.placeholder = "D"; mw.placeholder = "max wt (g)";
+  w.placeholder = "W";
+  l.placeholder = "L";
+  d.placeholder = "D";
+  mw.placeholder = "max wt (g)";
   preset.onchange = () => {
     const p = PRESETS[preset.value];
-    if (p) { w.value = p.width; l.value = p.length; d.value = p.depth; mw.value = MAX_WEIGHT_G; if (!ref.value) ref.value = preset.value; }
+    if (p) {
+      w.value = p.width;
+      l.value = p.length;
+      d.value = p.depth;
+      mw.value = MAX_WEIGHT_G;
+      if (!ref.value) ref.value = preset.value;
+    }
   };
   [preset, ref, w, l, d, mw, rmButton(row)].forEach((n) => row.appendChild(n));
   el("boxes").appendChild(row);
@@ -61,12 +72,18 @@ function boxRow(data = {}) {
 function itemRow(data = {}) {
   const row = document.createElement("div");
   row.className = "row item-row";
-  const desc = mkInput("text", "description", data.description || ""); desc.placeholder = "description";
-  const w = mkInput("number", "width", data.width || ""); w.placeholder = "W";
-  const l = mkInput("number", "length", data.length || ""); l.placeholder = "L";
-  const d = mkInput("number", "depth", data.depth || ""); d.placeholder = "D";
-  const wt = mkInput("number", "weight", data.weight || ""); wt.placeholder = "wt (g)";
-  const qty = mkInput("number", "quantity", data.quantity || 1); qty.placeholder = "qty";
+  const desc = mkInput("text", "description", data.description || "");
+  desc.placeholder = "description";
+  const w = mkInput("number", "width", data.width || "");
+  w.placeholder = "W";
+  const l = mkInput("number", "length", data.length || "");
+  l.placeholder = "L";
+  const d = mkInput("number", "depth", data.depth || "");
+  d.placeholder = "D";
+  const wt = mkInput("number", "weight", data.weight || "");
+  wt.placeholder = "wt (g)";
+  const qty = mkInput("number", "quantity", data.quantity || 1);
+  qty.placeholder = "qty";
   const rot = document.createElement("select");
   rot.dataset.name = "rotation";
   ["best_fit", "keep_flat", "never"].forEach((r) => {
@@ -104,17 +121,22 @@ function validate(spec) {
   if (!spec.items.length) return "Add at least one item.";
   for (const b of spec.boxes) {
     const name = b.reference || "?";
-    for (const k of ["width", "length", "depth"]) if (!(b[k] > 0)) return `Box "${name}": ${k} must be a positive number.`;
+    for (const k of ["width", "length", "depth"])
+      if (!(b[k] > 0)) return `Box "${name}": ${k} must be a positive number.`;
     const longest = Math.max(b.width, b.length, b.depth);
-    if (longest > MAX_LEN_MM) return `Box "${name}" exceeds Australia Post limit: longest side ${longest} mm > ${MAX_LEN_MM} mm.`;
+    if (longest > MAX_LEN_MM)
+      return `Box "${name}" exceeds Australia Post limit: longest side ${longest} mm > ${MAX_LEN_MM} mm.`;
     const vol = b.width * b.length * b.depth;
-    if (vol > MAX_VOL_MM3) return `Box "${name}" exceeds Australia Post limit: volume ${vol} mm³ > ${MAX_VOL_MM3} mm³.`;
+    if (vol > MAX_VOL_MM3)
+      return `Box "${name}" exceeds Australia Post limit: volume ${vol} mm³ > ${MAX_VOL_MM3} mm³.`;
     const mw = b.max_weight || MAX_WEIGHT_G;
-    if (mw > MAX_WEIGHT_G) return `Box "${name}" exceeds Australia Post limit: max weight ${mw} g > ${MAX_WEIGHT_G} g.`;
+    if (mw > MAX_WEIGHT_G)
+      return `Box "${name}" exceeds Australia Post limit: max weight ${mw} g > ${MAX_WEIGHT_G} g.`;
   }
   for (const it of spec.items) {
     const name = it.description || "?";
-    for (const k of ["width", "length", "depth", "weight"]) if (!(it[k] > 0)) return `Item "${name}": ${k} must be a positive number.`;
+    for (const k of ["width", "length", "depth", "weight"])
+      if (!(it[k] > 0)) return `Item "${name}": ${k} must be a positive number.`;
   }
   return null;
 }
@@ -128,11 +150,40 @@ function showErr(msg) {
 function loadExample() {
   el("boxes").innerHTML = "";
   el("items").innerHTML = "";
-  boxRow({ preset: "AusPost Medium", reference: "AusPost Medium", ...PRESETS["AusPost Medium"], max_weight: MAX_WEIGHT_G });
+  boxRow({
+    preset: "AusPost Medium",
+    reference: "AusPost Medium",
+    ...PRESETS["AusPost Medium"],
+    max_weight: MAX_WEIGHT_G,
+  });
   [
-    { description: "book", width: 210, length: 140, depth: 20, weight: 300, quantity: 6, rotation: "best_fit" },
-    { description: "mug", width: 100, length: 80, depth: 100, weight: 400, quantity: 4, rotation: "best_fit" },
-    { description: "cable", width: 60, length: 40, depth: 30, weight: 80, quantity: 8, rotation: "best_fit" },
+    {
+      description: "book",
+      width: 210,
+      length: 140,
+      depth: 20,
+      weight: 300,
+      quantity: 6,
+      rotation: "best_fit",
+    },
+    {
+      description: "mug",
+      width: 100,
+      length: 80,
+      depth: 100,
+      weight: 400,
+      quantity: 4,
+      rotation: "best_fit",
+    },
+    {
+      description: "cable",
+      width: 60,
+      length: 40,
+      depth: 30,
+      weight: 80,
+      quantity: 8,
+      rotation: "best_fit",
+    },
   ].forEach(itemRow);
 }
 
@@ -156,7 +207,10 @@ export function initBuilder({ onPacked }) {
   el("new-toggle").onclick = () => {
     const f = el("builder");
     f.hidden = !f.hidden;
-    if (!f.hidden && !el("boxes").children.length) { boxRow(); itemRow(); }
+    if (!f.hidden && !el("boxes").children.length) {
+      boxRow();
+      itemRow();
+    }
   };
   el("add-box").onclick = () => boxRow();
   el("add-item").onclick = () => itemRow();
