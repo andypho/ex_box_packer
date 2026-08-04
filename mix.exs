@@ -8,7 +8,7 @@ defmodule ExBoxPacker.MixProject do
     [
       app: :ex_box_packer,
       version: @version,
-      elixir: "~> 1.20",
+      elixir: "~> 1.15",
       compilers: [:boundary] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -34,6 +34,7 @@ defmodule ExBoxPacker.MixProject do
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:plug, "~> 1.15", optional: true},
       {:stream_data, "~> 1.1", only: [:dev, :test]}
     ]
   end
@@ -41,7 +42,7 @@ defmodule ExBoxPacker.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      files: ["lib", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md", ".formatter.exs"],
+      files: ["lib", "priv", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md", ".formatter.exs"],
       links: %{
         "GitHub" => @source_url,
         "Original BoxPacker (PHP)" => "https://github.com/dvdoug/BoxPacker"

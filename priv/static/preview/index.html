@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="csrf-token" content="{{CSRF}}" />
+    <title>ex_box_packer — packing preview</title>
+    <link rel="stylesheet" href="{{BASE}}/assets/app.css" />
+  </head>
+  <body>
+    <aside id="list">
+      <button id="new-toggle">＋ New packing</button>
+      <form id="builder" hidden>
+        <div class="grp">
+          <div class="grp-head"><span>Boxes</span><button type="button" id="add-box">+ Add box</button></div>
+          <div id="boxes"></div>
+        </div>
+        <div class="grp">
+          <div class="grp-head"><span>Items</span><button type="button" id="add-item">+ Add item</button></div>
+          <div id="items"></div>
+        </div>
+        <p class="hint">dimensions in mm, weight in g</p>
+        <div class="grp-actions">
+          <button type="button" id="load-example">Load example</button>
+          <button type="submit" id="pack">Pack ▶</button>
+        </div>
+        <p id="builder-error" class="err" hidden></p>
+      </form>
+      <h1>Packings</h1>
+      <ul id="packings"></ul>
+    </aside>
+    <main>
+      <div id="controls">
+        <button id="play">Play</button><button id="step">Step</button>
+        <input id="scrub" type="range" min="0" max="0" value="0" />
+        <label>Speed <input id="speed" type="range" min="1" max="20" value="6" /></label>
+        <select id="box-select"></select>
+        <span id="stats"></span>
+      </div>
+      <div id="scene"></div>
+    </main>
+    <script src="{{BASE}}/assets/vendor/three.min.js"></script>
+    <script src="{{BASE}}/assets/viewer.js"></script>
+  </body>
+</html>
