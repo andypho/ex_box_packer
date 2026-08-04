@@ -5,17 +5,27 @@ bin-packing and box-selection engine. Given a set of items and a catalog of boxe
 how to physically arrange the items inside them (rotation, weight limits, weight distribution, stability, and
 placement constraints).
 
-> **Status: under construction.** Milestone 1 (the domain layer) is in progress. The packing engine
-> (`VolumePacker`, `Packer`) lands in later milestones — see `docs/superpowers/plans/`.
+> **Status: v0.1.0 — feature-complete.** The full engine is implemented: box selection, 3D packing
+> (`ExBoxPacker.VolumePacker` / `Packer`), rotation modes, weight limits + redistribution, and placement
+> constraints — with the BoxPacker test suite ported (155 tests) and golden-benchmark parity against BoxPacker.
+> An optional dev-only 3D packing preview lives under `ExBoxPacker.PackerPreview`. Not yet published to Hex.
 
 ## Requirements
 
-- Elixir `~> 1.20` on OTP 29 (pinned in `.tool-versions` for [`mise`](https://mise.jdx.dev)).
+- **Supported:** Elixir `~> 1.15` (the `mix.exs` requirement — kept low so apps on older Elixir can depend on it).
+- **Developed and tested with:** Elixir `1.20.2` on OTP 29, pinned in `.tool-versions`.
 
-If you use `mise`, the toolchain is selected automatically inside this directory:
+The `.tool-versions` file is read by both [`asdf`](https://asdf-vm.com) and [`mise`](https://mise.jdx.dev), so
+either one selects the pinned dev toolchain automatically inside this directory:
 
 ```bash
-mise install        # installs the pinned erlang/elixir the first time
+# mise
+mise install                 # installs the pinned erlang/elixir the first time
+
+# asdf
+asdf plugin add erlang       # once, if the plugins aren't already added
+asdf plugin add elixir
+asdf install                 # installs the pinned erlang/elixir from .tool-versions
 ```
 
 ## Getting started
@@ -32,7 +42,7 @@ e.g. `mise exec -- iex -S mix`.
 
 Inside `iex`, use `recompile()` after editing source.
 
-## Usage (target API — not all implemented yet)
+## Usage
 
 ```elixir
 alias ExBoxPacker.{Packer, SimpleBox, SimpleItem}
@@ -51,24 +61,28 @@ items = [
               weight: 100, allowed_rotation: :best_fit, quantity: 3}
 ]
 
-{:ok, result} = Packer.pack(boxes, items)   # (Packer arrives in Milestone 3)
+{:ok, result} = Packer.pack(boxes, items)
 ```
 
-Today (Milestone 1) the domain layer is usable directly: `ExBoxPacker.SimpleItem`, `SimpleBox`, the `Item`/`Box`
-protocols, `Rotation`, the sorters, and the `Packed*` result structs.
+The public API is `ExBoxPacker.Packer` (`pack/2`, `pack!/2`, `pack_all_possible/2`), the `SimpleItem` / `SimpleBox`
+structs, the `Item` / `Box` protocols (plus optional protocols for constrained placement, limited supply, and linked
+items), `Rotation`, the sorters, and the `Packed*` result structs.
 
 ## Important notes
 
-- **Integer-only geometry.** All dimensions and weights are integers. Pick a unit (e.g. mm and grams) and use it
-  consistently across every item and box. This is BoxPacker's core correctness rule and is enforced at the struct
-  boundary.
+- **Units — millimetres and grams; no conversion.** By convention all lengths (widths, lengths, depths) are in
+  millimetres (`mm`) and all weights (item weight, box empty weight, max weight) are in grams (`g`) — the same
+  convention as BoxPacker. Dimensions and weights are plain integers, and to stay lightweight the library does
+  **no unit conversion**: it treats every value as a raw magnitude, so all items and boxes must share the same
+  units. If your data is in other units (cm, inches, kg, …), convert it to mm/g at your own boundary before packing.
+  Using consistent units is BoxPacker's core correctness rule.
 - **Rotation modes** (`ExBoxPacker.Rotation`): `:never` (fixed), `:keep_flat` (rotate in the horizontal plane
   only — "this way up"), `:best_fit` (all 6 orthogonal orientations, the default).
 - **Boxes:** outer dimensions/empty weight are for shipping; inner dimensions bound the packable space.
 - **Item quantity:** `SimpleItem`'s `quantity` field is a convenience expanded to N identical units. Custom `Item`
   implementations supply one struct per physical unit.
-- **Extensibility:** custom items/boxes implement the `ExBoxPacker.Item` / `ExBoxPacker.Box` protocols. Later
-  milestones add optional protocols for constrained placement, limited supply, and linked items.
+- **Extensibility:** custom items/boxes implement the `ExBoxPacker.Item` / `ExBoxPacker.Box` protocols. Optional
+  protocols add constrained placement, limited supply, and linked items.
 
 ## License
 
