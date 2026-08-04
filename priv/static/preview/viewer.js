@@ -29,6 +29,26 @@
   dir.position.set(1, 2, 1.5);
   scene.add(dir);
 
+  // --- orbit/zoom camera (static by default; drag to rotate, wheel/buttons to zoom) ---
+  const target = new THREE.Vector3();
+  const MIN_PHI = 0.05, MAX_PHI = Math.PI - 0.05;
+  let theta = Math.PI / 4, phi = Math.PI / 3.2, radius = 100, minRadius = 1, maxRadius = 1e6;
+
+  function updateCamera() {
+    const s = radius * Math.sin(phi);
+    camera.position.set(
+      target.x + s * Math.sin(theta),
+      target.y + radius * Math.cos(phi),
+      target.z + s * Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+
+  function zoom(factor) {
+    radius = Math.min(maxRadius, Math.max(minRadius, radius * factor));
+    updateCamera();
+  }
+
   let group = new THREE.Group();
   scene.add(group);
   let meshes = [];   // item cuboids in placement order
@@ -43,9 +63,14 @@
   }
 
   function frameCamera(iw, il, id) {
-    const c = new THREE.Vector3(iw / 2, id / 2, il / 2);
-    camera.position.set(iw * 1.8, id * 1.8, il * 1.8);
-    camera.lookAt(c);
+    const diag = Math.hypot(iw, il, id);
+    target.set(iw / 2, id / 2, il / 2);
+    radius = diag * 1.4;
+    minRadius = diag * 0.35;
+    maxRadius = diag * 5;
+    theta = Math.PI / 4;
+    phi = Math.PI / 3.2;
+    updateCamera();
   }
 
   // Three.js: X=width, Y=depth(up), Z=length. Packing coords: x=width, y=length, z=depth(up).
@@ -121,10 +146,34 @@
   el("step").onclick = () => reveal(shown + 1);
   el("scrub").oninput = (e) => reveal(+e.target.value);
 
+  // drag to rotate, wheel or +/- buttons to zoom
+  const canvas = renderer.domElement;
+  canvas.style.cursor = "grab";
+  let dragging = false, lastX = 0, lastY = 0;
+  canvas.addEventListener("pointerdown", (e) => {
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+    canvas.style.cursor = "grabbing";
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    theta -= (e.clientX - lastX) * 0.01;
+    phi = Math.min(MAX_PHI, Math.max(MIN_PHI, phi - (e.clientY - lastY) * 0.01));
+    lastX = e.clientX; lastY = e.clientY;
+    updateCamera();
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    dragging = false; canvas.style.cursor = "grab";
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointercancel", () => { dragging = false; canvas.style.cursor = "grab"; });
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.1 : 0.9); }, { passive: false });
+  el("zoom-in").onclick = () => zoom(0.85);
+  el("zoom-out").onclick = () => zoom(1.15);
+
   let acc = 0;
   function tick(t) {
     requestAnimationFrame(tick);
-    group.rotation.y += 0.0015;
     if (playing) {
       acc += 1;
       if (acc >= (21 - +el("speed").value)) { acc = 0; reveal(shown + 1); if (shown >= meshes.length) { playing = false; el("play").textContent = "Play"; } }
