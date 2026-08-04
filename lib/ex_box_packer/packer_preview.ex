@@ -94,7 +94,7 @@ if Code.ensure_loaded?(Plug) do
       path = Path.join(@static_dir, Path.basename(file))
 
       if File.exists?(path) do
-        conn |> put_resp_content_type(content_type(file)) |> send_file(200, path)
+        conn |> skip_csrf() |> put_resp_content_type(content_type(file)) |> send_file(200, path)
       else
         send_resp(conn, 404, "not found")
       end
@@ -104,7 +104,7 @@ if Code.ensure_loaded?(Plug) do
       path = Path.join([@static_dir, "vendor", Path.basename(file)])
 
       if File.exists?(path) do
-        conn |> put_resp_content_type(content_type(file)) |> send_file(200, path)
+        conn |> skip_csrf() |> put_resp_content_type(content_type(file)) |> send_file(200, path)
       else
         send_resp(conn, 404, "not found")
       end
@@ -143,6 +143,13 @@ if Code.ensure_loaded?(Plug) do
       |> put_resp_content_type("application/json")
       |> send_resp(status, :json.encode(data))
     end
+
+    # Opt static assets out of a host's Plug.CSRFProtection, whose before_send otherwise raises
+    # InvalidCrossOriginRequestError for any GET served as text/javascript (a guard against
+    # cross-site <script> inclusion). Our JS assets carry no session data, so serving them as
+    # plain <script src> from within a `protect_from_forgery` pipeline is safe. The POST
+    # /api/pack route keeps CSRF protection (the guard only applies to GET + JS responses).
+    defp skip_csrf(conn), do: put_private(conn, :plug_skip_csrf_protection, true)
 
     defp stream_loop(conn) do
       receive do
