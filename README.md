@@ -26,14 +26,15 @@ asdf install                 # installs the pinned erlang/elixir from .tool-vers
 ## Getting started
 
 ```bash
-mise install                 # once, to install the pinned toolchain
-mix deps.get                 # fetch dev/test deps (ex_doc, credo, dialyxir, stream_data)
+mise install                 # once, to install the pinned toolchain (or `asdf install`)
+mix deps.get                 # fetch deps (ex_doc, credo, dialyxir, stream_data, boundary, plug)
 mix test                     # run the test suite
 iex -S mix                   # interactive shell with all modules loaded
 ```
 
-If `mix`/`iex` aren't on your PATH (mise not activated in your shell), prefix commands with `mise exec -- `,
-e.g. `mise exec -- iex -S mix`.
+If you use asdf, run `asdf install` in place of `mise install`; asdf exposes `mix`/`iex` on your PATH via shims.
+With mise, if `mix`/`iex` aren't on your PATH (mise not activated in your shell), prefix commands with
+`mise exec -- `, e.g. `mise exec -- iex -S mix`.
 
 Inside `iex`, use `recompile()` after editing source.
 
