@@ -30,6 +30,7 @@ defmodule ExBoxPacker.Packer do
     WeightRedistributor
   }
 
+  alias ExBoxPacker.Broadcast
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
   alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
 
@@ -82,21 +83,30 @@ defmodule ExBoxPacker.Packer do
     sorter = Keyword.get(opts, :packed_box_sorter, DefaultPackedBoxSorter)
     strict? = Keyword.get(opts, :strict_ordering?, false)
     enforce_single? = Keyword.get(opts, :enforce_single_box?, false)
+    topic = Keyword.get(opts, :broadcast_topic)
     sorted_items = ItemList.from_items(items)
     sorted_boxes = BoxList.sort(boxes)
     quantities = initial_quantities(boxes)
     timeout_ctx = start_timeout(Keyword.get(opts, :timeout))
 
-    do_basic_packing(
-      sorted_boxes,
-      sorted_items,
-      sorter,
-      strict?,
-      enforce_single?,
-      quantities,
-      timeout_ctx,
-      PackedBoxList.new(sorter)
-    )
+    if topic, do: Broadcast.started(topic)
+
+    {packed, leftover} =
+      do_basic_packing(
+        sorted_boxes,
+        sorted_items,
+        sorter,
+        strict?,
+        enforce_single?,
+        quantities,
+        timeout_ctx,
+        topic,
+        PackedBoxList.new(sorter)
+      )
+
+    if topic, do: Broadcast.done(topic, Broadcast.summary(packed, leftover))
+
+    {packed, leftover}
   end
 
   # Port of `TimeoutChecker::start` — records a deadline in monotonic ms alongside the
@@ -153,6 +163,7 @@ defmodule ExBoxPacker.Packer do
          _enforce_single?,
          _quantities,
          _timeout_ctx,
+         _topic,
          acc
        ),
        do: {acc, []}
@@ -165,6 +176,7 @@ defmodule ExBoxPacker.Packer do
          enforce_single?,
          quantities,
          timeout_ctx,
+         topic,
          acc
        ) do
     box_list = get_box_list(items, boxes, enforce_single?, quantities)
@@ -176,6 +188,7 @@ defmodule ExBoxPacker.Packer do
       candidates ->
         best = candidates |> Enum.sort(&(sorter.compare(&1, &2) <= 0)) |> hd()
         remaining = subtract_packed(items, best)
+        if topic, do: Broadcast.box_packed(topic, best)
 
         do_basic_packing(
           boxes,
@@ -185,6 +198,7 @@ defmodule ExBoxPacker.Packer do
           enforce_single?,
           Map.update!(quantities, best.box, &decrement/1),
           timeout_ctx,
+          topic,
           PackedBoxList.insert(acc, best)
         )
     end

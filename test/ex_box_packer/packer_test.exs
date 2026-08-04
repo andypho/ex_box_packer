@@ -293,4 +293,44 @@ defmodule ExBoxPacker.PackerTest do
       allowed_rotation: :keep_flat,
       linked_item_group: group
     }
+
+  describe "broadcast events" do
+    setup do
+      original = Application.get_env(:ex_box_packer, ExBoxPacker)
+      test_pid = self()
+
+      Application.put_env(:ex_box_packer, ExBoxPacker,
+        broadcast: [publisher: fn _topic, event -> send(test_pid, {:published, event}) end]
+      )
+
+      on_exit(fn ->
+        if original,
+          do: Application.put_env(:ex_box_packer, ExBoxPacker, original),
+          else: Application.delete_env(:ex_box_packer, ExBoxPacker)
+      end)
+
+      :ok
+    end
+
+    test "emits :started, one :box_packed per box, then :done" do
+      boxes = [box("Box", 100, 100, 100, 0, 10_000)]
+      items = [item("a", 50, 50, 50, 10, :best_fit), item("b", 50, 50, 50, 10, :best_fit)]
+
+      {packed, []} = Packer.pack_all_possible(boxes, items, broadcast_topic: "box_packing:test")
+
+      assert_received {:published, %ExBoxPacker.Broadcast.Event{type: :started}}
+      assert_received {:published, %ExBoxPacker.Broadcast.Event{type: :box_packed, box: %PackedBox{}}}
+      assert_received {:published, %ExBoxPacker.Broadcast.Event{type: :done, summary: %{box_count: n}}}
+      assert n == PackedBoxList.count(packed)
+    end
+
+    test "no :broadcast_topic → packing behaves exactly as before and emits nothing" do
+      boxes = [box("Box", 100, 100, 100, 0, 10_000)]
+      items = [item("a", 50, 50, 50, 10, :best_fit)]
+
+      assert {:ok, pbl} = Packer.pack(boxes, items)
+      assert PackedBoxList.count(pbl) == 1
+      refute_received {:published, _}
+    end
+  end
 end
