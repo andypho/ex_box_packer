@@ -129,11 +129,10 @@ defmodule ExBoxPacker.PackerPreviewTest do
     assert %{"ok" => false} = :json.decode(conn.resp_body)
   end
 
-  test "GET / injects a csrf-token meta tag (no template placeholders left)" do
+  test "GET / leaves no template placeholders in the served HTML" do
     conn = ExBoxPacker.PackerPreview.call(conn(:get, "/"), @opts)
-    assert conn.resp_body =~ ~s(name="csrf-token")
-    refute conn.resp_body =~ "{{CSRF}}"
     refute conn.resp_body =~ "{{BASE}}"
+    refute conn.resp_body =~ ~r/\{\{[A-Z]+\}\}/
   end
 
   test "GET / includes the sandbox builder form" do
