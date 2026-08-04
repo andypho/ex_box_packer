@@ -5,6 +5,29 @@ bin-packing and box-selection engine. Given a set of items and a catalog of boxe
 how to physically arrange the items inside them (rotation, weight limits, weight distribution, stability, and
 placement constraints).
 
+## Installation
+
+Install from [Hex.pm](https://hex.pm/packages/ex_box_packer):
+
+```elixir
+def deps do
+  [{:ex_box_packer, "~> 0.1.0"}]
+end
+```
+
+Note: ExBoxPacker requires Elixir 1.15 or higher.
+
+## Upgrading
+
+See [CHANGELOG](./CHANGELOG.md) for upgrade steps between versions.
+
+## Documentation
+
+- [ExBoxPacker hexdocs](https://hexdocs.pm/ex_box_packer).
+- For the packing algorithm, constraints, and general background, see the original
+  [BoxPacker](https://github.com/dvdoug/BoxPacker) project and its
+  [documentation](https://boxpacker.io).
+
 ## Requirements
 
 - **Supported:** Elixir `~> 1.15` (the `mix.exs` requirement — kept low so apps on older Elixir can depend on it).
