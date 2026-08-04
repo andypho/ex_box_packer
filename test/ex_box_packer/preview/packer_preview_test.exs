@@ -69,8 +69,8 @@ defmodule ExBoxPacker.PackerPreviewTest do
     assert get_resp_header(conn, "content-type") |> hd() =~ "text/css"
   end
 
-  test "GET /assets/viewer.js returns 200 with text/javascript" do
-    conn = ExBoxPacker.PackerPreview.call(conn(:get, "/assets/viewer.js"), @opts)
+  test "GET /assets/app.js returns 200 with text/javascript" do
+    conn = ExBoxPacker.PackerPreview.call(conn(:get, "/assets/app.js"), @opts)
     assert conn.status == 200
     assert get_resp_header(conn, "content-type") |> hd() =~ "text/javascript"
   end
@@ -147,7 +147,7 @@ defmodule ExBoxPacker.PackerPreviewTest do
   # JS must opt out of that guard, or the whole viewer fails to load.
   test "serving JS assets is not blocked by a host's Plug.CSRFProtection cross-origin guard" do
     conn =
-      conn(:get, "/assets/viewer.js")
+      conn(:get, "/assets/app.js")
       |> init_test_session(%{})
       |> Plug.CSRFProtection.call(Plug.CSRFProtection.init([]))
       |> ExBoxPacker.PackerPreview.call(@opts)
