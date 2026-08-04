@@ -11,7 +11,6 @@
     "AusPost X-Large": { width: 500, length: 440, depth: 350 },
   };
   const MAX_WEIGHT_G = 22000, MAX_LEN_MM = 1050, MAX_VOL_MM3 = 250000000;
-  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
 
   const palette = {};
   const colorFor = (desc) =>
@@ -261,7 +260,7 @@
     try {
       const res = await fetch(`${base}/api/pack`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-csrf-token": csrf },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify(spec),
       });
       const data = await res.json();

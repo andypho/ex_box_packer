@@ -2,12 +2,20 @@ if Code.ensure_loaded?(Plug) do
   defmodule ExBoxPacker.PackerPreview do
     @moduledoc """
     A `forward`-able Plug that renders a 3D preview of packings captured via
-    `ExBoxPacker.Preview`. Mount it (typically under a dev-only scope):
+    `ExBoxPacker.Preview`.
+
+    Mount it under a dev-only scope, and mount it **outside** any `protect_from_forgery`
+    (CSRF) pipeline — the tool serves its own JavaScript assets and a JSON `POST /api/pack`
+    endpoint, both of which `Plug.CSRFProtection` blocks. A scope with no `:browser` pipeline
+    is ideal (this mirrors how Swoosh's mailbox and Phoenix's GraphiQL dev tools are mounted):
 
         scope "/dev" do
-          pipe_through [:browser]
           forward "/box-packer", ExBoxPacker.PackerPreview
         end
+
+    If you must mount it inside a `:browser`/CSRF pipeline, the JavaScript assets still load
+    (the Plug opts them out of CSRF's cross-origin-script guard), but `POST /api/pack` will be
+    rejected unless the request carries a valid CSRF token for the endpoint's host.
 
     Requires the optional `:plug` dependency and a running `ExBoxPacker.Preview.Collector`.
     """
@@ -18,6 +26,7 @@ if Code.ensure_loaded?(Plug) do
 
     @static_dir Application.app_dir(:ex_box_packer, "priv/static/preview")
 
+    plug(:skip_host_csrf)
     plug(:match)
     plug(:dispatch)
 
@@ -28,11 +37,7 @@ if Code.ensure_loaded?(Plug) do
       base = if base == "/", do: "", else: base
 
       html =
-        @static_dir
-        |> Path.join("index.html")
-        |> File.read!()
-        |> String.replace("{{BASE}}", base)
-        |> String.replace("{{CSRF}}", Plug.CSRFProtection.get_csrf_token())
+        @static_dir |> Path.join("index.html") |> File.read!() |> String.replace("{{BASE}}", base)
 
       conn
       |> put_resp_content_type("text/html")
@@ -94,7 +99,7 @@ if Code.ensure_loaded?(Plug) do
       path = Path.join(@static_dir, Path.basename(file))
 
       if File.exists?(path) do
-        conn |> skip_csrf() |> put_resp_content_type(content_type(file)) |> send_file(200, path)
+        conn |> put_resp_content_type(content_type(file)) |> send_file(200, path)
       else
         send_resp(conn, 404, "not found")
       end
@@ -104,7 +109,7 @@ if Code.ensure_loaded?(Plug) do
       path = Path.join([@static_dir, "vendor", Path.basename(file)])
 
       if File.exists?(path) do
-        conn |> skip_csrf() |> put_resp_content_type(content_type(file)) |> send_file(200, path)
+        conn |> put_resp_content_type(content_type(file)) |> send_file(200, path)
       else
         send_resp(conn, 404, "not found")
       end
@@ -144,12 +149,14 @@ if Code.ensure_loaded?(Plug) do
       |> send_resp(status, :json.encode(data))
     end
 
-    # Opt static assets out of a host's Plug.CSRFProtection, whose before_send otherwise raises
-    # InvalidCrossOriginRequestError for any GET served as text/javascript (a guard against
-    # cross-site <script> inclusion). Our JS assets carry no session data, so serving them as
-    # plain <script src> from within a `protect_from_forgery` pipeline is safe. The POST
-    # /api/pack route keeps CSRF protection (the guard only applies to GET + JS responses).
-    defp skip_csrf(conn), do: put_private(conn, :plug_skip_csrf_protection, true)
+    # Opt this tool's routes out of a host's Plug.CSRFProtection cross-origin-script guard, which
+    # otherwise raises InvalidCrossOriginRequestError (at before_send) for any GET served as
+    # text/javascript — that would block the viewer's JS assets. This only neutralises that
+    # GET-asset guard. It does NOT bypass the POST CSRF token check: a host's
+    # `protect_from_forgery` performs that at call time, before this forward runs. For
+    # POST /api/pack to work without a token, mount the tool outside a CSRF pipeline (see the
+    # module doc). Safe as a dev-only tool that only writes to an in-memory ring buffer.
+    defp skip_host_csrf(conn, _opts), do: put_private(conn, :plug_skip_csrf_protection, true)
 
     defp stream_loop(conn) do
       receive do
