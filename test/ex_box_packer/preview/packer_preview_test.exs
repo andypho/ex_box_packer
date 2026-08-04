@@ -141,4 +141,19 @@ defmodule ExBoxPacker.PackerPreviewTest do
     assert conn.resp_body =~ ~s(id="builder")
     assert conn.resp_body =~ "Load example"
   end
+
+  # A host that mounts this Plug behind `protect_from_forgery` (e.g. Phoenix's `:browser`
+  # pipeline) installs Plug.CSRFProtection, whose before_send raises
+  # InvalidCrossOriginRequestError for any GET served as `text/javascript`. Serving our static
+  # JS must opt out of that guard, or the whole viewer fails to load.
+  test "serving JS assets is not blocked by a host's Plug.CSRFProtection cross-origin guard" do
+    conn =
+      conn(:get, "/assets/viewer.js")
+      |> init_test_session(%{})
+      |> Plug.CSRFProtection.call(Plug.CSRFProtection.init([]))
+      |> ExBoxPacker.PackerPreview.call(@opts)
+
+    assert conn.status == 200
+    assert get_resp_header(conn, "content-type") |> hd() =~ "javascript"
+  end
 end
