@@ -1,0 +1,13 @@
+{
+  "name": "ex_box_packer_dev",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-only tooling for ex_box_packer: Prettier for the preview static assets. Not part of the published Hex package.",
+  "scripts": {
+    "format": "prettier --write \"priv/static/preview/*.{js,css}\"",
+    "format:check": "prettier --check \"priv/static/preview/*.{js,css}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}

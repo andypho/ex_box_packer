@@ -1,27 +1,142 @@
-* { box-sizing: border-box; }
-body { margin: 0; display: flex; height: 100vh; font: 14px system-ui, sans-serif; }
-#list { width: 300px; overflow-y: auto; border-right: 1px solid #ddd; padding: 8px; }
-#list h1 { font-size: 14px; }
-#packings { list-style: none; margin: 0; padding: 0; }
-#packings li { padding: 6px; cursor: pointer; border-radius: 4px; }
-#packings li:hover, #packings li.active { background: #eef; }
-main { flex: 1; display: flex; flex-direction: column; }
-#controls { padding: 8px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #ddd; }
-#scene { flex: 1; position: relative; }
-#zoom-controls { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; z-index: 1; }
-#zoom-controls button { width: 32px; height: 32px; font-size: 18px; line-height: 1; cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
-#zoom-controls button:hover { background: #eef; }
-#new-toggle { width: 100%; padding: 6px; margin-bottom: 8px; cursor: pointer; }
-#builder { border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 8px; }
-#builder .grp { margin-bottom: 8px; }
-#builder .grp-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 4px; }
-#builder .grp-head button { font-size: 12px; cursor: pointer; }
-#builder .row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; align-items: center; }
-#builder .row input { width: 52px; padding: 2px 4px; }
-#builder .row input[data-name="reference"], #builder .row input[data-name="description"] { width: 100%; }
-#builder .row select { padding: 2px; }
-#builder .row select.preset { width: 100%; }
-#builder .row .rm { margin-left: auto; border: none; background: none; color: #a00; cursor: pointer; }
-#builder .hint { color: #888; font-size: 12px; margin: 4px 0; }
-#builder .grp-actions { display: flex; justify-content: space-between; gap: 8px; }
-#builder .err { color: #a00; font-size: 12px; margin: 6px 0 0; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  font:
+    14px system-ui,
+    sans-serif;
+}
+#list {
+  width: 300px;
+  overflow-y: auto;
+  border-right: 1px solid #ddd;
+  padding: 8px;
+}
+#list h1 {
+  font-size: 14px;
+}
+#packings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+#packings li {
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+#packings li:hover,
+#packings li.active {
+  background: #eef;
+}
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+#controls {
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
+#scene {
+  flex: 1;
+  position: relative;
+}
+#zoom-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1;
+}
+#zoom-controls button {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+#zoom-controls button:hover {
+  background: #eef;
+}
+#new-toggle {
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+#builder {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+#builder .grp {
+  margin-bottom: 8px;
+}
+#builder .grp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+#builder .grp-head button {
+  font-size: 12px;
+  cursor: pointer;
+}
+#builder .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+  align-items: center;
+}
+#builder .row input {
+  width: 52px;
+  padding: 2px 4px;
+}
+#builder .row input[data-name="reference"],
+#builder .row input[data-name="description"] {
+  width: 100%;
+}
+#builder .row select {
+  padding: 2px;
+}
+#builder .row select.preset {
+  width: 100%;
+}
+#builder .row .rm {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: #a00;
+  cursor: pointer;
+}
+#builder .hint {
+  color: #888;
+  font-size: 12px;
+  margin: 4px 0;
+}
+#builder .grp-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+#builder .err {
+  color: #a00;
+  font-size: 12px;
+  margin: 6px 0 0;
+}
