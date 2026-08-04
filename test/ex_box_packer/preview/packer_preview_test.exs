@@ -7,9 +7,9 @@ defmodule ExBoxPacker.PackerPreviewTest do
   @opts ExBoxPacker.PackerPreview.init([])
 
   setup do
-    Application.put_env(:ex_box_packer, ExBoxPacker.Preview, enabled: true)
+    Application.put_env(:ex_box_packer, ExBoxPacker, preview: [enabled: true])
     start_supervised!(Collector)
-    on_exit(fn -> Application.put_env(:ex_box_packer, ExBoxPacker.Preview, enabled: false) end)
+    on_exit(fn -> Application.delete_env(:ex_box_packer, ExBoxPacker) end)
     :ok
   end
 

@@ -33,9 +33,7 @@ defmodule ExBoxPacker.Preview.Collector do
 
   @impl true
   def init(opts) do
-    max =
-      opts[:max_packings] || Application.get_env(:ex_box_packer, __MODULE__, [])[:max_packings] ||
-        @default_max
+    max = opts[:max_packings] || ExBoxPacker.Config.preview()[:max_packings] || @default_max
 
     {:ok, %{packings: [], max: max, subscribers: MapSet.new()}}
   end

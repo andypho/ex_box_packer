@@ -5,7 +5,7 @@ defmodule ExBoxPacker.Preview do
   Enable in dev config and add the collector to your supervision tree:
 
       # config/dev.exs
-      config :ex_box_packer, ExBoxPacker.Preview, enabled: true
+      config :ex_box_packer, ExBoxPacker, preview: [enabled: true]
 
       # application.ex (dev only)
       children = [ExBoxPacker.Preview.Collector | rest]
@@ -32,9 +32,9 @@ defmodule ExBoxPacker.Preview do
     :ok
   end
 
-  @doc "Whether preview capture is enabled (config `:ex_box_packer, ExBoxPacker.Preview, enabled: true`; default false)."
+  @doc "Whether preview capture is enabled (config `:ex_box_packer, ExBoxPacker, preview: [enabled: true]`; default false)."
   @spec enabled?() :: boolean()
-  def enabled?, do: Application.get_env(:ex_box_packer, __MODULE__, [])[:enabled] == true
+  def enabled?, do: ExBoxPacker.Config.preview()[:enabled] == true
 
   @doc "Convenience: `Packer.pack/3` then `capture/2`. Returns the `pack/3` result."
   @spec pack([ExBoxPacker.Box.t()], [ExBoxPacker.Item.t()], keyword()) ::
