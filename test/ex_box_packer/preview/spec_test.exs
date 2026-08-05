@@ -7,10 +7,24 @@ defmodule ExBoxPacker.Preview.SpecTest do
     Map.merge(
       %{
         "boxes" => [
-          %{"reference" => "AusPost Medium", "width" => 310, "length" => 225, "depth" => 102, "max_weight" => 22_000}
+          %{
+            "reference" => "AusPost Medium",
+            "width" => 310,
+            "length" => 225,
+            "depth" => 102,
+            "max_weight" => 22_000
+          }
         ],
         "items" => [
-          %{"description" => "widget", "width" => 100, "length" => 80, "depth" => 60, "weight" => 500, "quantity" => 4, "rotation" => "best_fit"}
+          %{
+            "description" => "widget",
+            "width" => 100,
+            "length" => 80,
+            "depth" => 60,
+            "weight" => 500,
+            "quantity" => 4,
+            "rotation" => "best_fit"
+          }
         ]
       },
       overrides
@@ -58,7 +72,17 @@ defmodule ExBoxPacker.Preview.SpecTest do
   end
 
   test "invalid rotation -> error" do
-    items = [%{"description" => "x", "width" => 1, "length" => 1, "depth" => 1, "weight" => 1, "rotation" => "sideways"}]
+    items = [
+      %{
+        "description" => "x",
+        "width" => 1,
+        "length" => 1,
+        "depth" => 1,
+        "weight" => 1,
+        "rotation" => "sideways"
+      }
+    ]
+
     assert {:error, msg} = Spec.decode(req(%{"items" => items}))
     assert msg =~ "invalid rotation"
   end
@@ -77,7 +101,16 @@ defmodule ExBoxPacker.Preview.SpecTest do
   end
 
   test "box over AusPost weight limit -> error" do
-    boxes = [%{"reference" => "Heavy", "width" => 100, "length" => 100, "depth" => 100, "max_weight" => 30_000}]
+    boxes = [
+      %{
+        "reference" => "Heavy",
+        "width" => 100,
+        "length" => 100,
+        "depth" => 100,
+        "max_weight" => 30_000
+      }
+    ]
+
     assert {:error, msg} = Spec.decode(req(%{"boxes" => boxes}))
     assert msg =~ "max weight 30000 g > 22000 g"
   end
@@ -105,7 +138,17 @@ defmodule ExBoxPacker.Preview.SpecTest do
   end
 
   test "empty-string quantity falls back to the default" do
-    items = [%{"description" => "x", "width" => 10, "length" => 10, "depth" => 10, "weight" => 5, "quantity" => ""}]
+    items = [
+      %{
+        "description" => "x",
+        "width" => 10,
+        "length" => 10,
+        "depth" => 10,
+        "weight" => 5,
+        "quantity" => ""
+      }
+    ]
+
     assert {:ok, {_, [item]}} = Spec.decode(req(%{"items" => items}))
     assert item.quantity == 1
   end

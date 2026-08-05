@@ -88,8 +88,26 @@ defmodule ExBoxPacker.PackerPreviewTest do
   test "POST /api/pack packs a valid spec, stores it, and returns {ok, id}" do
     spec = %{
       "label" => "sandbox",
-      "boxes" => [%{"reference" => "B", "width" => 100, "length" => 100, "depth" => 100, "max_weight" => 22_000}],
-      "items" => [%{"description" => "w", "width" => 40, "length" => 40, "depth" => 40, "weight" => 100, "quantity" => 2, "rotation" => "best_fit"}]
+      "boxes" => [
+        %{
+          "reference" => "B",
+          "width" => 100,
+          "length" => 100,
+          "depth" => 100,
+          "max_weight" => 22_000
+        }
+      ],
+      "items" => [
+        %{
+          "description" => "w",
+          "width" => 40,
+          "length" => 40,
+          "depth" => 40,
+          "weight" => 100,
+          "quantity" => 2,
+          "rotation" => "best_fit"
+        }
+      ]
     }
 
     conn = post_pack(spec)
@@ -109,7 +127,9 @@ defmodule ExBoxPacker.PackerPreviewTest do
   test "POST /api/pack with a box over the AusPost limit returns 422" do
     spec = %{
       "boxes" => [%{"reference" => "Long", "width" => 1200, "length" => 100, "depth" => 100}],
-      "items" => [%{"description" => "w", "width" => 10, "length" => 10, "depth" => 10, "weight" => 1}]
+      "items" => [
+        %{"description" => "w", "width" => 10, "length" => 10, "depth" => 10, "weight" => 1}
+      ]
     }
 
     conn = post_pack(spec)
@@ -121,7 +141,9 @@ defmodule ExBoxPacker.PackerPreviewTest do
   test "POST /api/pack with an item too large for any box returns 422" do
     spec = %{
       "boxes" => [%{"reference" => "B", "width" => 10, "length" => 10, "depth" => 10}],
-      "items" => [%{"description" => "big", "width" => 100, "length" => 100, "depth" => 100, "weight" => 1}]
+      "items" => [
+        %{"description" => "big", "width" => 100, "length" => 100, "depth" => 100, "weight" => 1}
+      ]
     }
 
     conn = post_pack(spec)

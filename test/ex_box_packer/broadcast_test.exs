@@ -7,10 +7,13 @@ defmodule ExBoxPacker.BroadcastTest do
 
   setup do
     original = Application.get_env(:ex_box_packer, ExBoxPacker)
+
     on_exit(fn ->
-      if original, do: Application.put_env(:ex_box_packer, ExBoxPacker, original),
-      else: Application.delete_env(:ex_box_packer, ExBoxPacker)
+      if original,
+        do: Application.put_env(:ex_box_packer, ExBoxPacker, original),
+        else: Application.delete_env(:ex_box_packer, ExBoxPacker)
     end)
+
     :ok
   end
 
@@ -28,6 +31,7 @@ defmodule ExBoxPacker.BroadcastTest do
 
   test "an injected :publisher receives (topic, event)" do
     test_pid = self()
+
     Application.put_env(:ex_box_packer, ExBoxPacker,
       broadcast: [publisher: fn topic, event -> send(test_pid, {:pub, topic, event}) end]
     )
@@ -38,10 +42,26 @@ defmodule ExBoxPacker.BroadcastTest do
 
   test "summary/2 computes box_count, utilisation, and passes through leftovers" do
     box = %SimpleBox{
-      reference: "b", outer_width: 100, outer_length: 100, outer_depth: 100,
-      inner_width: 100, inner_length: 100, inner_depth: 100, empty_weight: 0, max_weight: 10_000
+      reference: "b",
+      outer_width: 100,
+      outer_length: 100,
+      outer_depth: 100,
+      inner_width: 100,
+      inner_length: 100,
+      inner_depth: 100,
+      empty_weight: 0,
+      max_weight: 10_000
     }
-    item = %SimpleItem{description: "i", width: 50, length: 50, depth: 50, weight: 10, allowed_rotation: :best_fit}
+
+    item = %SimpleItem{
+      description: "i",
+      width: 50,
+      length: 50,
+      depth: 50,
+      weight: 10,
+      allowed_rotation: :best_fit
+    }
+
     {packed, leftover} = ExBoxPacker.Packer.pack_all_possible([box], [item])
 
     summary = Broadcast.summary(packed, leftover)

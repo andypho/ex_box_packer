@@ -111,13 +111,16 @@ defmodule ExBoxPacker.Preview.Spec do
 
     cond do
       longest > @max_length_mm ->
-        {:error, ~s(box "#{ref}" exceeds Australia Post limit: longest side #{longest} mm > #{@max_length_mm} mm)}
+        {:error,
+         ~s(box "#{ref}" exceeds Australia Post limit: longest side #{longest} mm > #{@max_length_mm} mm)}
 
       volume > @max_volume_mm3 ->
-        {:error, ~s[box "#{ref}" exceeds Australia Post limit: volume #{volume} mm³ > #{@max_volume_mm3} mm³ (0.25 m³)]}
+        {:error,
+         ~s[box "#{ref}" exceeds Australia Post limit: volume #{volume} mm³ > #{@max_volume_mm3} mm³ (0.25 m³)]}
 
       mw > @max_weight_g ->
-        {:error, ~s[box "#{ref}" exceeds Australia Post limit: max weight #{mw} g > #{@max_weight_g} g (22 kg)]}
+        {:error,
+         ~s[box "#{ref}" exceeds Australia Post limit: max weight #{mw} g > #{@max_weight_g} g (22 kg)]}
 
       true ->
         :ok
@@ -128,8 +131,12 @@ defmodule ExBoxPacker.Preview.Spec do
     key = to_string(Map.get(m, "rotation", "best_fit"))
 
     case Map.fetch(@rotations, key) do
-      {:ok, atom} -> {:ok, atom}
-      :error -> {:error, ~s(item "#{desc}" has invalid rotation "#{key}"; expected never, keep_flat, or best_fit)}
+      {:ok, atom} ->
+        {:ok, atom}
+
+      :error ->
+        {:error,
+         ~s(item "#{desc}" has invalid rotation "#{key}"; expected never, keep_flat, or best_fit)}
     end
   end
 

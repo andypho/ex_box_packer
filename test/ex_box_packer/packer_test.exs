@@ -319,8 +319,13 @@ defmodule ExBoxPacker.PackerTest do
       {packed, []} = Packer.pack_all_possible(boxes, items, broadcast_topic: "box_packing:test")
 
       assert_received {:published, %ExBoxPacker.Broadcast.Event{type: :started}}
-      assert_received {:published, %ExBoxPacker.Broadcast.Event{type: :box_packed, box: %PackedBox{}}}
-      assert_received {:published, %ExBoxPacker.Broadcast.Event{type: :done, summary: %{box_count: n}}}
+
+      assert_received {:published,
+                       %ExBoxPacker.Broadcast.Event{type: :box_packed, box: %PackedBox{}}}
+
+      assert_received {:published,
+                       %ExBoxPacker.Broadcast.Event{type: :done, summary: %{box_count: n}}}
+
       assert n == PackedBoxList.count(packed)
     end
 
