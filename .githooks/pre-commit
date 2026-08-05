@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# Pre-commit hook: enforce formatting and Credo before a commit is created.
+# Enabled via a version-controlled hooks directory:
+#
+#     git config core.hooksPath .githooks
+#
+# (run once per clone). To skip in an emergency: `git commit --no-verify`.
+
+set -e
+
+# Make the mise-managed Elixir toolchain (mix) available to the hook shell.
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+
+echo "→ mix format --check-formatted"
+mix format --check-formatted
+
+echo "→ mix credo --strict"
+mix credo --strict
+
+echo "✓ pre-commit checks passed"
