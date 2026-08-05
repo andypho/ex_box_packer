@@ -61,6 +61,11 @@ defmodule ExBoxPacker.Broadcast do
              true <- Code.ensure_loaded?(Absinthe.Subscription) do
           # Fire-and-forget: a live packing feed tolerates a dropped event, so we
           # intentionally ignore Absinthe's publish result and always return :ok.
+          #
+          # `apply/3` (not a direct call) is deliberate: it keeps the optional
+          # `absinthe` dependency out of this module's compile-time reference graph,
+          # so the library compiles cleanly for apps that don't pull absinthe in.
+          # credo:disable-for-next-line Credo.Check.Refactor.Apply
           apply(Absinthe.Subscription, :publish, [endpoint, event, [{field, topic}]])
           :ok
         else

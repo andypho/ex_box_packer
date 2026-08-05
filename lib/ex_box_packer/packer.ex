@@ -34,6 +34,17 @@ defmodule ExBoxPacker.Packer do
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
   alias ExBoxPacker.Sorting.DefaultPackedBoxSorter
 
+  # Loop-invariant packing context threaded through the greedy `do_basic_packing/4`
+  # recursion (bundled so that function stays low-arity).
+  @typep pack_ctx :: %{
+           boxes: [Box.t()],
+           sorter: module(),
+           strict?: boolean(),
+           enforce_single?: boolean(),
+           timeout_ctx: map() | nil,
+           topic: String.t() | nil
+         }
+
   @doc "Pack `items` into the fewest `boxes`. Returns `{:ok, PackedBoxList}` or `{:error, NoBoxesAvailableError}`."
   @spec pack([Box.t()], [Item.t()], keyword()) ::
           {:ok, PackedBoxList.t()} | {:error, Exception.t()}
@@ -81,26 +92,25 @@ defmodule ExBoxPacker.Packer do
 
   defp do_pack(boxes, items, opts) do
     sorter = Keyword.get(opts, :packed_box_sorter, DefaultPackedBoxSorter)
-    strict? = Keyword.get(opts, :strict_ordering?, false)
-    enforce_single? = Keyword.get(opts, :enforce_single_box?, false)
     topic = Keyword.get(opts, :broadcast_topic)
-    sorted_items = ItemList.from_items(items)
-    sorted_boxes = BoxList.sort(boxes)
-    quantities = initial_quantities(boxes)
-    timeout_ctx = start_timeout(Keyword.get(opts, :timeout))
+
+    # Loop-invariant packing context, bundled so `do_basic_packing/4` stays low-arity.
+    ctx = %{
+      boxes: BoxList.sort(boxes),
+      sorter: sorter,
+      strict?: Keyword.get(opts, :strict_ordering?, false),
+      enforce_single?: Keyword.get(opts, :enforce_single_box?, false),
+      timeout_ctx: start_timeout(Keyword.get(opts, :timeout)),
+      topic: topic
+    }
 
     if topic, do: Broadcast.started(topic)
 
     {packed, leftover} =
       do_basic_packing(
-        sorted_boxes,
-        sorted_items,
-        sorter,
-        strict?,
-        enforce_single?,
-        quantities,
-        timeout_ctx,
-        topic,
+        ctx,
+        ItemList.from_items(items),
+        initial_quantities(boxes),
         PackedBoxList.new(sorter)
       )
 
@@ -155,50 +165,26 @@ defmodule ExBoxPacker.Packer do
     end)
   end
 
-  defp do_basic_packing(
-         _boxes,
-         [],
-         _sorter,
-         _strict?,
-         _enforce_single?,
-         _quantities,
-         _timeout_ctx,
-         _topic,
-         acc
-       ),
-       do: {acc, []}
+  @spec do_basic_packing(pack_ctx(), [Item.t()], map(), PackedBoxList.t()) ::
+          {PackedBoxList.t(), [Item.t()]}
+  defp do_basic_packing(_ctx, [], _quantities, acc), do: {acc, []}
 
-  defp do_basic_packing(
-         boxes,
-         items,
-         sorter,
-         strict?,
-         enforce_single?,
-         quantities,
-         timeout_ctx,
-         topic,
-         acc
-       ) do
-    box_list = get_box_list(items, boxes, enforce_single?, quantities)
+  defp do_basic_packing(ctx, items, quantities, acc) do
+    box_list = get_box_list(items, ctx.boxes, ctx.enforce_single?, quantities)
 
-    case collect_candidates(box_list, items, strict?, timeout_ctx) do
+    case collect_candidates(box_list, items, ctx.strict?, ctx.timeout_ctx) do
       [] ->
         {acc, items}
 
       candidates ->
-        best = candidates |> Enum.sort(&(sorter.compare(&1, &2) <= 0)) |> hd()
+        best = candidates |> Enum.sort(&(ctx.sorter.compare(&1, &2) <= 0)) |> hd()
         remaining = subtract_packed(items, best)
-        if topic, do: Broadcast.box_packed(topic, best)
+        if ctx.topic, do: Broadcast.box_packed(ctx.topic, best)
 
         do_basic_packing(
-          boxes,
+          ctx,
           remaining,
-          sorter,
-          strict?,
-          enforce_single?,
           Map.update!(quantities, best.box, &decrement/1),
-          timeout_ctx,
-          topic,
           PackedBoxList.insert(acc, best)
         )
     end
