@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-08-06
+
+### Changed
+
+- **Breaking — configuration consolidated under a single key.** All library
+  configuration now lives under the `ExBoxPacker` application-config key, with nested
+  `preview:` / `broadcast:` sub-keywords, read through the new `ExBoxPacker.Config`
+  helper.
+
+  Upgrade — replace the old preview key:
+
+  ```elixir
+  # before
+  config :ex_box_packer, ExBoxPacker.Preview, enabled: true
+
+  # after
+  config :ex_box_packer, ExBoxPacker, preview: [enabled: true]
+  ```
+
+### Added
+
+- **Config-driven event broadcasting (`ExBoxPacker.Broadcast`).** When a
+  `:broadcast_topic` is passed to `ExBoxPacker.Packer.pack/3` or `pack_all_possible/3`
+  and a `broadcast:` config is set, packing emits `:started`, `:box_packed` (one per
+  box, in placement order), and `:done` events — published to an Absinthe subscription
+  via `Absinthe.Subscription.publish/3`. No callbacks; it is entirely config-driven.
+  Adds an optional `:absinthe` dependency, guarded so a `nil` topic or absent config
+  makes it a cheap no-op — existing `pack/2,3` callers are unaffected.
+- **`ExBoxPacker.Config`** — reader for the consolidated config (`preview/0`,
+  `broadcast/0`).
+- **`ExBoxPacker.Broadcast.Event`** — the streamed event struct
+  (`:started` / `:box_packed` / `:done`, carrying the packed box or summary).
+- **`:broadcast_topic` option** on `ExBoxPacker.Packer.pack/3` and
+  `pack_all_possible/3`.
+
 ## [0.1.0] - 2026-07-27
 
 Initial release: a feature-complete, faithful Elixir port of
@@ -33,4 +68,5 @@ Initial release: a feature-complete, faithful Elixir port of
   - Packing timeout via the `:timeout` option, raising `ExBoxPacker.TimeoutError` once the
     deadline is exceeded.
 
+[0.2.0]: https://github.com/andypho/ex_box_packer/releases/tag/v0.2.0
 [0.1.0]: https://github.com/andypho/ex_box_packer/releases/tag/v0.1.0

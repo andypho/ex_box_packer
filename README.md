@@ -11,7 +11,7 @@ Install from [Hex.pm](https://hex.pm/packages/ex_box_packer):
 
 ```elixir
 def deps do
-  [{:ex_box_packer, "~> 0.1.0"}]
+  [{:ex_box_packer, "~> 0.2.0"}]
 end
 ```
 
