@@ -106,3 +106,4 @@ items), `Rotation`, the sorters, and the `Packed*` result structs.
 ## License
 
 MIT. This project is a port of BoxPacker (also MIT), © Doug Wright and contributors.
+The optional 3D preview bundles [three.js](https://threejs.org) (also MIT), © Three.js Authors.
