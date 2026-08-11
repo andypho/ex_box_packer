@@ -31,6 +31,39 @@ defmodule ExBoxPacker.Preview.CollectorTest do
     assert_receive {:preview_packing, %{label: "x"}}
   end
 
+  test "a subscriber that dies is dropped from the subscriber set" do
+    test_pid = self()
+
+    sub =
+      spawn(fn ->
+        Collector.subscribe()
+        send(test_pid, :subscribed)
+        Process.sleep(:infinity)
+      end)
+
+    assert_receive :subscribed
+
+    ref = Process.monitor(sub)
+    Process.exit(sub, :kill)
+    assert_receive {:DOWN, ^ref, :process, ^sub, :killed}
+
+    # Capturing after the subscriber is gone must not raise, and the collector
+    # must have processed the :DOWN and removed it. A synchronous call afterwards
+    # proves the collector handled :DOWN without crashing.
+    Collector.capture(payload("y"), summary(), label: "y")
+    assert [%{label: "y"}] = Collector.list()
+    assert :sys.get_state(Collector).subscribers == MapSet.new()
+  end
+
+  test "capture and capture_sync accept a bare payload and summary with no opts" do
+    Collector.capture(payload("no-opts"), summary())
+    assert [%{label: nil}] = Collector.list()
+
+    id = Collector.capture_sync(payload("no-opts-sync"), summary())
+    assert is_integer(id)
+    assert [%{label: nil, id: ^id}, %{label: nil}] = Collector.list()
+  end
+
   test "capture_sync stores and returns the assigned id" do
     id = Collector.capture_sync(payload("s"), summary(), label: "s")
     assert is_integer(id)

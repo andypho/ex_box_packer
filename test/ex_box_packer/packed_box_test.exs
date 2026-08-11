@@ -41,6 +41,16 @@ defmodule ExBoxPacker.PackedBoxTest do
     assert PackedBox.remaining_depth(pb) == 2
   end
 
+  test "an empty box uses no space and has its full inner dimensions remaining" do
+    pb = packed_box([])
+    assert PackedBox.used_width(pb) == 0
+    assert PackedBox.used_length(pb) == 0
+    assert PackedBox.used_depth(pb) == 0
+    assert PackedBox.remaining_width(pb) == 10
+    assert PackedBox.remaining_length(pb) == 10
+    assert PackedBox.remaining_depth(pb) == 10
+  end
+
   test "volume accessors and utilisation" do
     pb = packed_box([PackedItem.new(item("a", 5, 5, 5, 1), 0, 0, 0, 5, 5, 5)])
     assert PackedBox.inner_volume(pb) == 1000
