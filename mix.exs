@@ -56,7 +56,16 @@ defmodule ExBoxPacker.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      files: ["lib", "priv", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md", ".formatter.exs"],
+      files: [
+        "lib",
+        "priv",
+        "guides",
+        "mix.exs",
+        "README.md",
+        "LICENSE",
+        "CHANGELOG.md",
+        ".formatter.exs"
+      ],
       links: %{
         "GitHub" => @source_url,
         "Original BoxPacker (PHP)" => "https://github.com/dvdoug/BoxPacker"
@@ -67,7 +76,7 @@ defmodule ExBoxPacker.MixProject do
   defp docs do
     [
       main: "ExBoxPacker",
-      extras: ["README.md", "CHANGELOG.md", "LICENSE"],
+      extras: ["README.md", "guides/dev_preview.md", "CHANGELOG.md", "LICENSE"],
       groups_for_modules: [
         Packing: [ExBoxPacker.Packer, ExBoxPacker.Engine.VolumePacker],
         "Items & Boxes": [
@@ -90,6 +99,11 @@ defmodule ExBoxPacker.MixProject do
           ExBoxPacker.Sorting.DefaultBoxSorter,
           ExBoxPacker.Sorting.PackedBoxSorter,
           ExBoxPacker.Sorting.DefaultPackedBoxSorter
+        ],
+        "Dev preview": [
+          ExBoxPacker.PackerPreview,
+          ExBoxPacker.Preview,
+          ExBoxPacker.Preview.Collector
         ],
         Errors: [ExBoxPacker.NoBoxesAvailableError]
       ]
