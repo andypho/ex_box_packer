@@ -1,10 +1,24 @@
+defmodule ExBoxPacker.PackerPreviewTest.JSONDecoder do
+  @moduledoc false
+  # Minimal :json_decoder for Plug.Parsers, so these tests can simulate a host
+  # application (e.g. Phoenix) that has already parsed the JSON body.
+  def decode!(binary), do: :json.decode(binary)
+end
+
 defmodule ExBoxPacker.PackerPreviewTest do
   use ExUnit.Case, async: false
   import Plug.Test
   import Plug.Conn
+  alias ExBoxPacker.PackerPreviewTest.JSONDecoder
   alias ExBoxPacker.Preview.Collector
 
   @opts ExBoxPacker.PackerPreview.init([])
+
+  @parser_opts Plug.Parsers.init(
+                 parsers: [:json],
+                 pass: ["application/json"],
+                 json_decoder: JSONDecoder
+               )
 
   setup do
     Application.put_env(:ex_box_packer, ExBoxPacker, preview: [enabled: true])
@@ -19,6 +33,32 @@ defmodule ExBoxPacker.PackerPreviewTest do
     conn(:post, "/api/pack", body)
     |> put_req_header("content-type", "application/json")
     |> ExBoxPacker.PackerPreview.call(@opts)
+  end
+
+  # POST a raw body that a host's Plug.Parsers has already consumed and decoded,
+  # leaving the result in conn.body_params.
+  defp post_pack_preparsed(body) do
+    conn(:post, "/api/pack", body)
+    |> put_req_header("content-type", "application/json")
+    |> Plug.Parsers.call(@parser_opts)
+    |> ExBoxPacker.PackerPreview.call(@opts)
+  end
+
+  defp valid_spec do
+    %{
+      "boxes" => [%{"reference" => "B", "width" => 100, "length" => 100, "depth" => 100}],
+      "items" => [
+        %{"description" => "w", "width" => 40, "length" => 40, "depth" => 40, "weight" => 100}
+      ]
+    }
+  end
+
+  defp wait_until(fun, remaining \\ 200) do
+    cond do
+      fun.() -> :ok
+      remaining <= 0 -> flunk("condition did not become true within 200ms")
+      true -> Process.sleep(5) && wait_until(fun, remaining - 5)
+    end
   end
 
   test "GET / serves the HTML shell" do
@@ -176,5 +216,135 @@ defmodule ExBoxPacker.PackerPreviewTest do
 
     assert conn.status == 200
     assert get_resp_header(conn, "content-type") |> hd() =~ "javascript"
+  end
+
+  describe "GET /assets/vendor/:file" do
+    test "serves a bundled vendor asset with the right content type" do
+      conn = ExBoxPacker.PackerPreview.call(conn(:get, "/assets/vendor/three.min.js"), @opts)
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-type") |> hd() =~ "text/javascript"
+      assert byte_size(conn.resp_body) > 0
+    end
+
+    test "returns 404 for an unknown vendor asset" do
+      conn = ExBoxPacker.PackerPreview.call(conn(:get, "/assets/vendor/nope.js"), @opts)
+      assert conn.status == 404
+      assert conn.resp_body == "not found"
+    end
+
+    test "cannot escape the vendor directory via a traversal path" do
+      conn = ExBoxPacker.PackerPreview.call(conn(:get, "/assets/vendor/..%2fapp.js"), @opts)
+      assert conn.status == 404
+    end
+  end
+
+  test "GET /assets/index.html is served as text/html" do
+    conn = ExBoxPacker.PackerPreview.call(conn(:get, "/assets/index.html"), @opts)
+    assert conn.status == 200
+    assert get_resp_header(conn, "content-type") |> hd() =~ "text/html"
+  end
+
+  describe "POST /api/pack body handling" do
+    test "uses body_params when a host's parser already decoded the JSON body" do
+      conn = post_pack_preparsed(IO.iodata_to_binary(:json.encode(valid_spec())))
+      assert conn.status == 200
+      assert %{"ok" => true, "id" => id} = :json.decode(conn.resp_body)
+      assert %{"boxes" => [_ | _]} = Collector.get(id)
+    end
+
+    test "returns 422 when a host's parser decoded an empty body to an empty map" do
+      conn = post_pack_preparsed("")
+      assert conn.status == 422
+      assert %{"ok" => false, "error" => "invalid JSON body"} = :json.decode(conn.resp_body)
+    end
+
+    test "returns 422 for a malformed raw JSON body" do
+      conn =
+        conn(:post, "/api/pack", "{not valid json")
+        |> put_req_header("content-type", "application/json")
+        |> ExBoxPacker.PackerPreview.call(@opts)
+
+      assert conn.status == 422
+      assert %{"ok" => false, "error" => "invalid JSON body"} = :json.decode(conn.resp_body)
+    end
+
+    test "returns 422 for an empty raw body" do
+      conn =
+        conn(:post, "/api/pack", "")
+        |> put_req_header("content-type", "application/json")
+        |> ExBoxPacker.PackerPreview.call(@opts)
+
+      assert conn.status == 422
+      assert %{"ok" => false, "error" => "invalid JSON body"} = :json.decode(conn.resp_body)
+    end
+
+    test "returns 422 when the decoded body is a JSON value that is not an object" do
+      conn =
+        conn(:post, "/api/pack", "[1,2,3]")
+        |> put_req_header("content-type", "application/json")
+        |> ExBoxPacker.PackerPreview.call(@opts)
+
+      assert conn.status == 422
+      assert %{"ok" => false, "error" => msg} = :json.decode(conn.resp_body)
+      assert msg =~ "expected a JSON object"
+    end
+  end
+
+  describe "GET /api/stream" do
+    test "opens a chunked SSE response, subscribes, and streams new packings" do
+      parent = self()
+      # `owner` is this process, so the adapter notifies us when the response is sent.
+      stream_conn = conn(:get, "/api/stream")
+
+      streamer =
+        spawn(fn ->
+          send(parent, :calling)
+          ExBoxPacker.PackerPreview.call(stream_conn, @opts)
+        end)
+
+      assert_receive :calling
+
+      # send_chunked/2 ran: a chunked response is open.
+      assert_receive {:plug_conn, :sent}
+
+      # The streaming process subscribed itself to the collector.
+      wait_until(fn ->
+        MapSet.member?(:sys.get_state(Collector).subscribers, streamer)
+      end)
+
+      # capture_sync returns only after the collector has sent to subscribers, so the
+      # event is guaranteed to be in (or already consumed from) the streamer's mailbox.
+      Collector.capture_sync(%{"boxes" => []}, %{boxes: 0, items: 0, utilisation: 0.0},
+        label: "streamed"
+      )
+
+      # An empty mailbox therefore proves stream_loop received the event, chunked it,
+      # and recursed — had chunk/2 failed or raised, the process would have exited.
+      wait_until(fn -> Process.info(streamer, :messages) == {:messages, []} end)
+      assert Process.alive?(streamer)
+
+      Process.exit(streamer, :kill)
+    end
+
+    test "a disconnected stream is dropped from the collector's subscribers" do
+      parent = self()
+      stream_conn = conn(:get, "/api/stream")
+
+      streamer =
+        spawn(fn ->
+          send(parent, :calling)
+          ExBoxPacker.PackerPreview.call(stream_conn, @opts)
+        end)
+
+      assert_receive :calling
+      assert_receive {:plug_conn, :sent}
+      wait_until(fn -> MapSet.member?(:sys.get_state(Collector).subscribers, streamer) end)
+
+      Process.exit(streamer, :kill)
+
+      wait_until(fn ->
+        not MapSet.member?(:sys.get_state(Collector).subscribers, streamer)
+      end)
+    end
   end
 end

@@ -24,6 +24,17 @@ defmodule ExBoxPacker.PackedLayerTest do
     assert PackedLayer.weight(layer) == 0
   end
 
+  test "empty layer reports zero for every start/end extent" do
+    layer = PackedLayer.new()
+    assert PackedLayer.items(layer) == []
+    assert PackedLayer.start_x(layer) == 0
+    assert PackedLayer.end_x(layer) == 0
+    assert PackedLayer.start_y(layer) == 0
+    assert PackedLayer.end_y(layer) == 0
+    assert PackedLayer.start_z(layer) == 0
+    assert PackedLayer.end_z(layer) == 0
+  end
+
   test "geometry spans the min/max extents of inserted items" do
     layer =
       PackedLayer.new()
