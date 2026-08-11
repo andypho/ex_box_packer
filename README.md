@@ -29,6 +29,7 @@ See [CHANGELOG](./CHANGELOG.md) for upgrade steps between versions.
 ## Documentation
 
 - [ExBoxPacker hexdocs](https://hexdocs.pm/ex_box_packer).
+- [Dev preview](guides/dev_preview.md) — mount the 3D visualiser/sandbox in your own app to play with the packer.
 - For the packing algorithm, constraints, and general background, see the original
   [BoxPacker](https://github.com/dvdoug/BoxPacker) project and its
   [documentation](https://boxpacker.io).
