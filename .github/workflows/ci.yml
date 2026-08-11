@@ -58,3 +58,16 @@ jobs:
 
       - name: Run tests
         run: mix test --exclude benchmark
+
+      - name: Coverage JSON
+        if: matrix.elixir == '1.20' && matrix.otp == '29'
+        run: mix coveralls.json --exclude benchmark
+
+      - name: Upload coverage to Codecov
+        if: matrix.elixir == '1.20' && matrix.otp == '29'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./cover/excoveralls.json
+          fail_ci_if_error: true
+          verbose: true

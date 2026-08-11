@@ -11,6 +11,7 @@ defmodule ExBoxPacker.MixProject do
       elixir: "~> 1.15",
       compilers: [:boundary] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_coverage: [tool: ExCoveralls],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "ExBoxPacker",
@@ -25,6 +26,17 @@ defmodule ExBoxPacker.MixProject do
 
   def application, do: [extra_applications: [:logger]]
 
+  def cli do
+    [
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.github": :test,
+        "coveralls.json": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -34,6 +46,7 @@ defmodule ExBoxPacker.MixProject do
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.18", only: :test},
       {:plug, "~> 1.15", optional: true},
       {:absinthe, "~> 1.7", optional: true},
       {:stream_data, "~> 1.1", only: [:dev, :test]}
