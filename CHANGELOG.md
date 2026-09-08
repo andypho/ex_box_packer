@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-09-08
+
+No functional changes — `lib/` and `priv/` are untouched since 0.2.0. Documentation,
+tooling and test coverage only.
+
+### Added
+
+- **Dev preview guide** (`guides/dev_preview.md`) — how to mount the
+  `ExBoxPacker.PackerPreview` route in a host application.
+
+### Changed
+
+- Attribution for the bundled three.js build in `LICENSE` and `README.md`.
+- Coverage reporting: CI now uploads to Codecov via excoveralls, and test coverage
+  rose from 92.3% to 98.4%.
+- Dependency bumps — `absinthe` 1.11.0 → 1.12.0 (optional), `dialyxir` 1.4.7 → 1.4.8,
+  `ex_doc` 0.40.3 → 0.40.4. The requirements in `mix.exs` are unchanged, so consumers
+  are unaffected.
+
 ## [0.2.0] - 2026-08-06
 
 ### Changed
@@ -68,5 +87,6 @@ Initial release: a feature-complete, faithful Elixir port of
   - Packing timeout via the `:timeout` option, raising `ExBoxPacker.TimeoutError` once the
     deadline is exceeded.
 
+[0.2.1]: https://github.com/andypho/ex_box_packer/releases/tag/v0.2.1
 [0.2.0]: https://github.com/andypho/ex_box_packer/releases/tag/v0.2.0
 [0.1.0]: https://github.com/andypho/ex_box_packer/releases/tag/v0.1.0
