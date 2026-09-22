@@ -25,6 +25,7 @@ defmodule ExBoxPacker.Packer do
     BoxList,
     Cache,
     ItemList,
+    ItemSpec,
     LinkedItemGroupEnforcer,
     VolumePacker,
     WeightRedistributor
@@ -54,7 +55,7 @@ defmodule ExBoxPacker.Packer do
 
       case leftover do
         [] -> {:ok, maybe_redistribute(packed, boxes, opts)}
-        _ -> {:error, NoBoxesAvailableError.exception(leftover)}
+        _ -> {:error, NoBoxesAvailableError.exception(user_items(leftover))}
       end
     end)
   end
@@ -87,8 +88,15 @@ defmodule ExBoxPacker.Packer do
   @doc "Pack as much as possible; never errors. Returns `{PackedBoxList, leftover_items}`."
   @spec pack_all_possible([Box.t()], [Item.t()], keyword()) :: {PackedBoxList.t(), [Item.t()]}
   def pack_all_possible(boxes, items, opts \\ []) do
-    Cache.with_cache(fn -> do_pack(boxes, items, opts) end)
+    Cache.with_cache(fn ->
+      {packed, leftover} = do_pack(boxes, items, opts)
+      {packed, user_items(leftover)}
+    end)
   end
+
+  # `do_pack/3` works on ItemSpecs; every list that escapes to a caller must carry the
+  # caller's own item structs, since both leftover paths are typed `[Item.t()]`.
+  defp user_items(items), do: Enum.map(items, &ItemSpec.user_item/1)
 
   defp do_pack(boxes, items, opts) do
     sorter = Keyword.get(opts, :packed_box_sorter, DefaultPackedBoxSorter)
@@ -215,7 +223,7 @@ defmodule ExBoxPacker.Packer do
   # `getBoxList`'s `boxQuantitiesAvailable[$box] > 0` check).
   defp get_box_list(items, boxes, enforce_single?, quantities) do
     item_volume =
-      Enum.reduce(items, 0, fn i, acc -> acc + Item.width(i) * Item.length(i) * Item.depth(i) end)
+      Enum.reduce(items, 0, fn i, acc -> acc + ItemSpec.wrap(i).volume end)
 
     available = Enum.filter(boxes, &available?(Map.fetch!(quantities, &1)))
 
@@ -240,11 +248,15 @@ defmodule ExBoxPacker.Packer do
   defp subtract_packed(items, %PackedBox{items: packed_list}) do
     to_remove = packed_list |> PackedItemList.as_items() |> Enum.frequencies()
 
+    # `items` holds ItemSpecs while `to_remove` is keyed by the raw user items that
+    # `PackedItemList.as_items/1` returns, so match on the spec's wrapped item.
     {kept, _} =
-      Enum.reduce(items, {[], to_remove}, fn item, {kept, counts} ->
+      Enum.reduce(items, {[], to_remove}, fn spec, {kept, counts} ->
+        item = ItemSpec.user_item(spec)
+
         case counts do
           %{^item => n} when n > 0 -> {kept, Map.put(counts, item, n - 1)}
-          _ -> {[item | kept], counts}
+          _ -> {[spec | kept], counts}
         end
       end)
 

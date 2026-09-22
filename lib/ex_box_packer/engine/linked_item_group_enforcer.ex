@@ -13,7 +13,7 @@ defmodule ExBoxPacker.Engine.LinkedItemGroupEnforcer do
   #
   # Faithful port of BoxPacker's `LinkedItemGroupEnforcer`.
 
-  alias ExBoxPacker.Engine.VolumePacker
+  alias ExBoxPacker.Engine.{ItemSpec, VolumePacker}
   alias ExBoxPacker.LinkedItem
   alias ExBoxPacker.Result.{PackedBox, PackedItemList}
 
@@ -83,13 +83,19 @@ defmodule ExBoxPacker.Engine.LinkedItemGroupEnforcer do
 
   defp has_linked_items?(items), do: Enum.any?(items, &linked?/1)
 
-  defp linked?(item), do: LinkedItem.impl_for(item) != nil
+  # Called with both ItemSpecs (the working list) and raw user items (from PackedItems);
+  # `user_item/1` passes a raw item through, so this handles both.
+  defp linked?(item), do: LinkedItem.impl_for(ItemSpec.user_item(item)) != nil
 
   # Routed through `apply/3` so the compile-time type checker does not flag this optional
   # extension protocol (only user/test code implements it). Every call is guarded by
   # `linked?/1`; runtime behaviour is identical to a direct `LinkedItem.linked_item_group/1`.
-  # credo:disable-for-next-line Credo.Check.Refactor.Apply
-  defp linked_item_group(item), do: apply(LinkedItem, :linked_item_group, [item])
+  defp linked_item_group(item) do
+    user_item = ItemSpec.user_item(item)
+
+    # credo:disable-for-next-line Credo.Check.Refactor.Apply
+    apply(LinkedItem, :linked_item_group, [user_item])
+  end
 
   # Map of group => count of items in `items` that implement LinkedItem with that group.
   defp linked_group_counts(items) do

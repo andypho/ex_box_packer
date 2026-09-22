@@ -77,7 +77,7 @@ defmodule ExBoxPacker.Engine.LayerPacker do
     box = st.opts.box
     weight_budget = Box.max_weight(box) - Box.empty_weight(box) - PackedItemList.weight(st.packed)
 
-    if Item.weight(item_to_pack) > weight_budget do
+    if item_to_pack.weight > weight_budget do
       # too heavy to ever fit — drop and continue
       loop(%{st | items: rest})
     else
@@ -115,7 +115,17 @@ defmodule ExBoxPacker.Engine.LayerPacker do
   end
 
   defp place(st, _item_to_pack, rest, oi, first_item) do
-    packed_item = PackedItem.new(oi.item, st.x, st.y, st.z, oi.width, oi.length, oi.depth)
+    packed_item =
+      PackedItem.new(
+        OrientatedItem.user_item(oi),
+        st.x,
+        st.y,
+        st.z,
+        oi.width,
+        oi.length,
+        oi.depth
+      )
+
     layer = PackedLayer.insert(st.layer, packed_item)
     packed = PackedItemList.insert(st.packed, packed_item)
     row_length = max(st.row_length, packed_item.length)
@@ -236,8 +246,5 @@ defmodule ExBoxPacker.Engine.LayerPacker do
 
   defp do_skip(_item, [], acc), do: {Enum.reverse(acc), []}
 
-  defp same_dimensions?(a, b) do
-    Enum.sort([Item.width(a), Item.length(a), Item.depth(a)]) ==
-      Enum.sort([Item.width(b), Item.length(b), Item.depth(b)])
-  end
+  defp same_dimensions?(a, b), do: a.sorted_dims == b.sorted_dims
 end

@@ -1,7 +1,7 @@
 defmodule ExBoxPacker.Engine.OrientatedItem do
   @moduledoc false
 
-  alias ExBoxPacker.Engine.Cache
+  alias ExBoxPacker.Engine.{Cache, ItemSpec}
   alias ExBoxPacker.Item
 
   @enforce_keys [:item, :width, :length, :depth, :surface_footprint]
@@ -35,11 +35,14 @@ defmodule ExBoxPacker.Engine.OrientatedItem do
     end)
   end
 
-  @doc "True if `item` has the same set of dimensions (in any order) as this orientation."
-  @spec same_dimensions?(t(), Item.t()) :: boolean()
-  def same_dimensions?(%__MODULE__{} = o, item) do
-    Enum.sort([o.width, o.length, o.depth]) ==
-      Enum.sort([Item.width(item), Item.length(item), Item.depth(item)])
+  @doc "The original user item behind this orientation."
+  @spec user_item(t()) :: Item.t()
+  def user_item(%__MODULE__{item: item}), do: ItemSpec.user_item(item)
+
+  @doc "True if `spec` has the same set of dimensions (in any order) as this orientation."
+  @spec same_dimensions?(t(), ItemSpec.t()) :: boolean()
+  def same_dimensions?(%__MODULE__{} = o, %ItemSpec{sorted_dims: dims}) do
+    Enum.sort([o.width, o.length, o.depth]) == dims
   end
 end
 

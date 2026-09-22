@@ -1,6 +1,6 @@
 defmodule ExBoxPacker.OrientatedItemFactoryTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory}
+  alias ExBoxPacker.Engine.{ItemSpec, OrientatedItem, OrientatedItemFactory}
   alias ExBoxPacker.Result.PackedItemList
   alias ExBoxPacker.{SimpleBox, SimpleItem}
 
@@ -20,15 +20,17 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
     }
   end
 
+  # The engine works on ItemSpecs, so wrap at the helper.
   defp item(w, l, d, rot),
-    do: %SimpleItem{
-      description: "t",
-      width: w,
-      length: l,
-      depth: d,
-      weight: 4,
-      allowed_rotation: rot
-    }
+    do:
+      ItemSpec.wrap(%SimpleItem{
+        description: "t",
+        width: w,
+        length: l,
+        depth: d,
+        weight: 4,
+        allowed_rotation: rot
+      })
 
   defp dims(orientations), do: Enum.map(orientations, &{&1.width, &1.length, &1.depth})
 

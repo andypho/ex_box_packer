@@ -27,8 +27,10 @@ defmodule ExBoxPacker.Engine.VolumePacker do
     sorted = ItemList.from_items(items)
 
     pack_across_width_only? = single_pass?
-    has_no_rotation? = Enum.any?(sorted, &(Item.allowed_rotation(&1) == :never))
-    has_constrained_items? = Enum.any?(sorted, &(ConstrainedPlacementItem.impl_for(&1) != nil))
+    has_no_rotation? = Enum.any?(sorted, &(&1.rotation == :never))
+
+    has_constrained_items? =
+      Enum.any?(sorted, &(ConstrainedPlacementItem.impl_for(&1.item) != nil))
 
     packer_opts = %{
       box: box,
@@ -289,7 +291,7 @@ defmodule ExBoxPacker.Engine.VolumePacker do
   defp subtract_once(items, [p | rest]), do: items |> delete_first(p) |> subtract_once(rest)
 
   defp delete_first(list, elem), do: do_delete_first(list, elem, [])
-  defp do_delete_first([elem | t], elem, acc), do: Enum.reverse(acc) ++ t
+  defp do_delete_first([%{item: elem} | t], elem, acc), do: Enum.reverse(acc) ++ t
   defp do_delete_first([h | t], elem, acc), do: do_delete_first(t, elem, [h | acc])
   defp do_delete_first([], _elem, acc), do: Enum.reverse(acc)
 end
