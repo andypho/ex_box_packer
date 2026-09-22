@@ -49,7 +49,8 @@ defmodule ExBoxPacker.MixProject do
       {:excoveralls, "~> 0.18", only: :test},
       {:plug, "~> 1.15", optional: true},
       {:absinthe, "~> 1.7", optional: true},
-      {:stream_data, "~> 1.1", only: [:dev, :test]}
+      {:stream_data, "~> 1.1", only: [:dev, :test]},
+      {:benchee, "~> 1.3", only: :dev, runtime: false}
     ]
   end
 
