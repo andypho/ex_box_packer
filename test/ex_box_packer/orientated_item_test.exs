@@ -1,9 +1,11 @@
 defmodule ExBoxPacker.OrientatedItemTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.Engine.OrientatedItem
+  alias ExBoxPacker.Engine.{ItemSpec, OrientatedItem}
   alias ExBoxPacker.SimpleItem
 
-  defp item(w, l, d), do: %SimpleItem{description: "t", width: w, length: l, depth: d, weight: 1}
+  # The engine works on ItemSpecs, so wrap at the helper.
+  defp item(w, l, d),
+    do: ItemSpec.wrap(%SimpleItem{description: "t", width: w, length: l, depth: d, weight: 1})
 
   test "new/4 sets dims and surface_footprint (width * length)" do
     o = OrientatedItem.new(item(2, 3, 4), 2, 3, 4)

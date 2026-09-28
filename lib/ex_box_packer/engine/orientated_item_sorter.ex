@@ -11,8 +11,6 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
     WorkingVolume
   }
 
-  alias ExBoxPacker.Item
-
   # Look-ahead simulation caps the number of following items considered, matching
   # BoxPacker's `topN(8)` to keep the recursive partial pack bounded.
   @lookahead_item_cap 8
@@ -82,10 +80,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
     item_sig =
       ctx.next_items
       |> Enum.take(@lookahead_item_cap)
-      |> Enum.map(
-        &{Item.width(&1), Item.length(&1), Item.depth(&1), Item.weight(&1),
-         Item.allowed_rotation(&1)}
-      )
+      |> Enum.map(&{&1.width, &1.length, &1.depth, &1.weight, &1.rotation})
 
     # The result is `length(next_items) - length(remaining2)`; `remaining2` depends only on the
     # first `@lookahead_item_cap` items (captured by `item_sig`), but the offset uses the FULL
@@ -128,8 +123,16 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
   defp subtract_packed(items, %{items: %{items: packed}}) do
     packed
     |> Enum.map(& &1.item)
-    |> Enum.reduce(items, fn p, acc -> List.delete(acc, p) end)
+    |> Enum.reduce(items, fn p, acc -> delete_first_by_item(acc, p) end)
   end
+
+  # `items` holds ItemSpecs; `user_item` came from a PackedItem, which holds the raw user
+  # item. Match on the spec's wrapped item so the identity subtraction still lines up.
+  defp delete_first_by_item(list, user_item), do: do_delete_by_item(list, user_item, [])
+
+  defp do_delete_by_item([%{item: user_item} | t], user_item, acc), do: Enum.reverse(acc) ++ t
+  defp do_delete_by_item([h | t], user_item, acc), do: do_delete_by_item(t, user_item, [h | acc])
+  defp do_delete_by_item([], _user_item, acc), do: Enum.reverse(acc)
 
   defp exact_fit_decider(a_left, b_left) do
     cond do

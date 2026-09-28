@@ -6,7 +6,8 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
   # item order) whenever a move reduces the 2-box weight variance and the item still fits in a
   # single box. LinkedItem members are never moved. Box-quantity tracking is deferred (M5).
 
-  alias ExBoxPacker.{Item, Packer}
+  alias ExBoxPacker.Engine.ItemSpec
+  alias ExBoxPacker.Packer
   alias ExBoxPacker.Result.{PackedBox, PackedBoxList, PackedItemList}
 
   @doc "Rebalance weight across `packed` (a PackedBoxList). `boxes` is the full catalog; `sorter` orders the result."
@@ -144,7 +145,7 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
   defp would_help?(over_items, item, under_items, target) do
     over_weight = total_weight(over_items)
     under_weight = total_weight(under_items)
-    item_weight = Item.weight(item)
+    item_weight = ItemSpec.wrap(item).weight
 
     if item_weight + under_weight > target do
       false
@@ -155,7 +156,8 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
     end
   end
 
-  defp total_weight(items), do: Enum.reduce(items, 0, fn i, acc -> acc + Item.weight(i) end)
+  defp total_weight(items),
+    do: Enum.reduce(items, 0, fn i, acc -> acc + ItemSpec.wrap(i).weight end)
 
   # For a 2-box population the squared deviation from the mean is identical for both boxes,
   # so one term suffices (matches PHP's calculateVariance).

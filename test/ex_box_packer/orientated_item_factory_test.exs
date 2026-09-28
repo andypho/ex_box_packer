@@ -1,6 +1,6 @@
 defmodule ExBoxPacker.OrientatedItemFactoryTest do
   use ExUnit.Case, async: true
-  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory}
+  alias ExBoxPacker.Engine.{ItemSpec, OrientatedItem, OrientatedItemFactory}
   alias ExBoxPacker.Result.PackedItemList
   alias ExBoxPacker.{SimpleBox, SimpleItem}
 
@@ -20,15 +20,17 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
     }
   end
 
+  # The engine works on ItemSpecs, so wrap at the helper.
   defp item(w, l, d, rot),
-    do: %SimpleItem{
-      description: "t",
-      width: w,
-      length: l,
-      depth: d,
-      weight: 4,
-      allowed_rotation: rot
-    }
+    do:
+      ItemSpec.wrap(%SimpleItem{
+        description: "t",
+        width: w,
+        length: l,
+        depth: d,
+        weight: 4,
+        allowed_rotation: rot
+      })
 
   defp dims(orientations), do: Enum.map(orientations, &{&1.width, &1.length, &1.depth})
 
@@ -197,5 +199,27 @@ defmodule ExBoxPacker.OrientatedItemFactoryTest do
              big_box(),
              item(2, 3, 4, :best_fit)
            )
+  end
+
+  describe "generate_permutations/2 dedup" do
+    test "all dimensions distinct yields six unique orientations in order" do
+      assert OrientatedItemFactory.generate_permutations(item(2, 3, 5, :best_fit), nil) ==
+               [{2, 3, 5}, {3, 2, 5}, {2, 5, 3}, {3, 5, 2}, {5, 2, 3}, {5, 3, 2}]
+    end
+
+    test "a cube collapses to one orientation" do
+      assert OrientatedItemFactory.generate_permutations(item(4, 4, 4, :best_fit), nil) ==
+               [{4, 4, 4}]
+    end
+
+    test "two equal dimensions dedup while preserving first-seen order" do
+      assert OrientatedItemFactory.generate_permutations(item(2, 2, 5, :best_fit), nil) ==
+               [{2, 2, 5}, {2, 5, 2}, {5, 2, 2}]
+    end
+
+    test "keep_flat with equal width and length dedups" do
+      assert OrientatedItemFactory.generate_permutations(item(3, 3, 9, :keep_flat), nil) ==
+               [{3, 3, 9}]
+    end
   end
 end
