@@ -28,3 +28,5 @@ ex_box_packer-*.tar
 # Dev-only JS tooling (Prettier for the preview assets).
 /node_modules/
 
+# Dialyzer PLTs (kept out of priv/ so they never ship in the package).
+/plts/

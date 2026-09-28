@@ -1,8 +1,8 @@
 defmodule ExBoxPacker.Engine.LayerPacker do
   @moduledoc false
 
-  alias ExBoxPacker.{Box, Item}
-  alias ExBoxPacker.Engine.{OrientatedItem, OrientatedItemFactory}
+  alias ExBoxPacker.Box
+  alias ExBoxPacker.Engine.{ItemSpec, OrientatedItem, OrientatedItemFactory}
   alias ExBoxPacker.Result.{PackedItem, PackedItemList, PackedLayer}
 
   @typedoc "Options: box, single_pass?, strict_ordering?, box_rotated?"
@@ -10,6 +10,7 @@ defmodule ExBoxPacker.Engine.LayerPacker do
           box: Box.t(),
           single_pass?: boolean(),
           strict_ordering?: boolean(),
+          has_constrained_items?: boolean(),
           box_rotated?: boolean()
         }
 
@@ -18,11 +19,11 @@ defmodule ExBoxPacker.Engine.LayerPacker do
   y runs `start_y..length_for_layer`, depth budget is `depth_for_layer`. `guideline_depth`
   (0 = unknown) targets a known layer depth so shorter items stack up to it.
 
-  Returns `{%PackedLayer{}, remaining_items :: [Item.t()], %PackedItemList{}}`.
+  Returns `{%PackedLayer{}, remaining_items :: [ItemSpec.t()], %PackedItemList{}}`.
   """
   @spec pack_layer(
           opts(),
-          [Item.t()],
+          [ItemSpec.t()],
           PackedItemList.t(),
           integer(),
           integer(),
@@ -33,7 +34,7 @@ defmodule ExBoxPacker.Engine.LayerPacker do
           integer(),
           boolean(),
           OrientatedItem.t() | nil
-        ) :: {PackedLayer.t(), [Item.t()], PackedItemList.t()}
+        ) :: {PackedLayer.t(), [ItemSpec.t()], PackedItemList.t()}
   # 12 parameters is a faithful 1:1 port of BoxPacker's LayerPacker::packLayer signature.
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def pack_layer(
