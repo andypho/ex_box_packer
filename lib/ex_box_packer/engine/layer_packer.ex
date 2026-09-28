@@ -162,24 +162,31 @@ defmodule ExBoxPacker.Engine.LayerPacker do
 
     new_x = st.x + packed_item.width
 
-    # Fill lengthwise across the width of this item, up to the current row length
-    {length_fill, items_after_length, packed} =
-      pack_layer(
-        st.opts,
-        items_after_stack,
-        packed,
-        new_x - packed_item.width,
-        st.y + packed_item.length,
-        st.z,
-        new_x,
-        st.y + row_length,
-        st.depth_for_layer,
-        PackedLayer.depth(layer),
-        st.consider_stability?,
-        nil
-      )
+    # Fill lengthwise across the width of this item, up to the current row length. Skipped
+    # when there is no such space: an empty-region pass would still drop too-heavy items from
+    # the queue early (BoxPacker 4.3.0 guards this the same way).
+    {layer, items_after_length, packed} =
+      if row_length > packed_item.length do
+        {length_fill, items2, packed2} =
+          pack_layer(
+            st.opts,
+            items_after_stack,
+            packed,
+            new_x - packed_item.width,
+            st.y + packed_item.length,
+            st.z,
+            new_x,
+            st.y + row_length,
+            st.depth_for_layer,
+            PackedLayer.depth(layer),
+            st.consider_stability?,
+            nil
+          )
 
-    layer = PackedLayer.merge(layer, length_fill)
+        {PackedLayer.merge(layer, length_fill), items2, packed2}
+      else
+        {layer, items_after_stack, packed}
+      end
 
     {items_next, skipped_next} =
       if items_after_length == [] and st.skipped != [] do

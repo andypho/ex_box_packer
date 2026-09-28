@@ -14,7 +14,8 @@ defmodule ExBoxPacker.Engine.VolumePacker do
     ItemSpec,
     LayerPacker,
     LayerStabiliser,
-    OrientatedItemFactory
+    OrientatedItemFactory,
+    VoidFinder
   }
 
   alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList, PackedLayer}
@@ -104,7 +105,7 @@ defmodule ExBoxPacker.Engine.VolumePacker do
   end
 
   defp pack_rotation(opts, sorted_items, box, box_width, box_length, first_item_orientation) do
-    # Rotation-invariant context threaded through the layer loop and end-gap fill.
+    # Rotation-invariant context threaded through the layer loop and void fill.
     rc = %{
       opts: opts,
       box: box,
@@ -113,13 +114,13 @@ defmodule ExBoxPacker.Engine.VolumePacker do
       first_item_orientation: first_item_orientation
     }
 
-    layers = build_layers(rc, sorted_items, [])
+    {layers, remaining} = build_layers(rc, sorted_items, [])
 
     layers =
       if not opts.single_pass? and layers != [] do
         layers
         |> stabilise_layers(opts)
-        |> fill_end_gaps(rc, sorted_items)
+        |> fill_voids(rc, remaining)
       else
         layers
       end
@@ -129,7 +130,8 @@ defmodule ExBoxPacker.Engine.VolumePacker do
   end
 
   # Outer layer loop: preliminary depth probe, then accept-or-repack with known depth.
-  defp build_layers(_rc, [], layers), do: layers
+  # Returns the layers plus the still-unpacked queue (PHP's `$items` after the loop).
+  defp build_layers(_rc, [], layers), do: {layers, []}
 
   defp build_layers(rc, items, layers) do
     box = rc.box
@@ -156,7 +158,7 @@ defmodule ExBoxPacker.Engine.VolumePacker do
 
     case PackedLayer.items(prelim_layer) do
       [] ->
-        layers
+        {layers, items}
 
       prelim_items ->
         {layer, remaining} =
@@ -213,50 +215,86 @@ defmodule ExBoxPacker.Engine.VolumePacker do
     end
   end
 
-  defp fill_end_gaps(layers, rc, items) do
-    # items here are the ORIGINAL sorted items; the already-packed ones must be excluded.
-    remaining = remaining_after(items, layers)
-    depth = Box.inner_depth(rc.box)
+  # Having packed layers, fill any empty regions (gaps at the ends, pockets between items)
+  # with the remaining items. Port of VolumePacker::fillVoids (BoxPacker 4.3.0).
+  defp fill_voids(layers, rc, items) do
+    packed = packed_item_list(layers)
 
-    max_layer_width = layers |> Enum.map(&PackedLayer.end_x/1) |> Enum.max(fn -> 0 end)
-
-    {gap_layer1, remaining, _p} =
-      LayerPacker.pack_layer(
-        rc.opts,
-        remaining,
-        packed_item_list(layers),
-        max_layer_width,
-        0,
-        0,
+    voids =
+      VoidFinder.find(
         rc.box_width,
         rc.box_length,
-        depth,
-        depth,
-        false,
-        nil
+        Box.inner_depth(rc.box),
+        PackedItemList.sorted(packed)
       )
 
-    layers = layers ++ [gap_layer1]
+    do_fill_voids(layers, rc, items, packed, voids)
+  end
 
-    max_layer_length = layers |> Enum.map(&PackedLayer.end_y/1) |> Enum.max(fn -> 0 end)
+  defp do_fill_voids(layers, _rc, [], _packed, _voids), do: layers
+  defp do_fill_voids(layers, _rc, _items, _packed, []), do: layers
 
-    {gap_layer2, _remaining, _p} =
-      LayerPacker.pack_layer(
-        rc.opts,
-        remaining,
-        packed_item_list(layers),
-        0,
-        max_layer_length,
-        0,
-        rc.box_width,
-        rc.box_length,
-        depth,
-        depth,
-        false,
-        nil
-      )
+  defp do_fill_voids(layers, rc, items, packed, voids) do
+    # Prefer lower positions, then larger free regions (volume, then footprint)
+    voids = Enum.sort_by(voids, &{&1.z, -&1.volume, -&1.footprint})
+    min_volume = items |> Enum.map(& &1.volume) |> Enum.min()
 
-    layers ++ [gap_layer2]
+    case fill_first_void(voids, rc, items, packed, min_volume) do
+      {:filled, layer, items, packed} ->
+        voids = VoidFinder.subtract_items(voids, PackedLayer.items(layer))
+        do_fill_voids(layers ++ [layer], rc, items, packed, voids)
+
+      {:none, _items} ->
+        layers
+    end
+  end
+
+  # Try each void in order until one takes at least one item. A failed attempt still threads
+  # its returned queue forward: like PHP's by-reference ItemList, pack_layer may have dropped
+  # too-heavy items from it.
+  defp fill_first_void([], _rc, items, _packed, _min_volume), do: {:none, items}
+
+  defp fill_first_void([void | rest], rc, items, packed, min_volume) do
+    # Pure performance: skip pack_layer when no remaining item can geometrically fit
+    if void.volume < min_volume or not Enum.any?(items, &item_may_fit_in_void?(&1, void)) do
+      fill_first_void(rest, rc, items, packed, min_volume)
+    else
+      {layer, items, packed} =
+        LayerPacker.pack_layer(
+          rc.opts,
+          items,
+          packed,
+          void.x,
+          void.y,
+          void.z,
+          void.x + void.width,
+          void.y + void.length,
+          void.depth,
+          void.depth,
+          # gap fill; stability assumed from surrounding geometry
+          false,
+          nil
+        )
+
+      case PackedLayer.items(layer) do
+        [] -> fill_first_void(rest, rc, items, packed, min_volume)
+        _ -> {:filled, layer, items, packed}
+      end
+    end
+  end
+
+  defp item_may_fit_in_void?(%{rotation: :never} = item, void),
+    do: item.width <= void.width and item.length <= void.length and item.depth <= void.depth
+
+  defp item_may_fit_in_void?(%{rotation: :keep_flat} = item, void) do
+    item.depth <= void.depth and
+      ((item.width <= void.width and item.length <= void.length) or
+         (item.length <= void.width and item.width <= void.length))
+  end
+
+  defp item_may_fit_in_void?(%{rotation: :best_fit, sorted_dims: [a, b, c]}, void) do
+    [x, y, z] = Enum.sort([void.width, void.length, void.depth])
+    a <= x and b <= y and c <= z
   end
 
   defp correct_layer_rotation(layers, box, box_width) do
@@ -288,19 +326,4 @@ defmodule ExBoxPacker.Engine.VolumePacker do
 
   defp current_packed_depth(layers),
     do: Enum.reduce(layers, 0, fn l, acc -> acc + PackedLayer.depth(l) end)
-
-  # Items from the original sorted list that are not yet represented in the packed layers,
-  # matched by identity of the underlying %Item{} struct.
-  defp remaining_after(items, layers) do
-    packed_items = layers |> Enum.flat_map(&PackedLayer.items/1) |> Enum.map(& &1.item)
-    subtract_once(items, packed_items)
-  end
-
-  defp subtract_once(items, []), do: items
-  defp subtract_once(items, [p | rest]), do: items |> delete_first(p) |> subtract_once(rest)
-
-  defp delete_first(list, elem), do: do_delete_first(list, elem, [])
-  defp do_delete_first([%{item: elem} | t], elem, acc), do: Enum.reverse(acc) ++ t
-  defp do_delete_first([h | t], elem, acc), do: do_delete_first(t, elem, [h | acc])
-  defp do_delete_first([], _elem, acc), do: Enum.reverse(acc)
 end

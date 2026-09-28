@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/codecov/c/github/andypho/ex_box_packer.svg)](https://codecov.io/gh/andypho/ex_box_packer)
 [![Docs](https://img.shields.io/badge/docs-hexdocs.pm-blue.svg)](https://hexdocs.pm/ex_box_packer)
 
-A faithful Elixir port of [dvdoug/BoxPacker](https://github.com/dvdoug/BoxPacker) (PHP, v4.2.0) — a 3D
+A faithful Elixir port of [dvdoug/BoxPacker](https://github.com/dvdoug/BoxPacker) (PHP, v4.3.0) — a 3D
 bin-packing and box-selection engine. Given a set of items and a catalog of boxes, it decides which boxes to use and
 how to physically arrange the items inside them (rotation, weight limits, weight distribution, stability, and
 placement constraints).

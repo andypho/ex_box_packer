@@ -59,17 +59,22 @@ defmodule ExBoxPacker.Result.PackedBox do
   end
 
   @doc """
-  Verify the packing is physically valid: every item is within the box bounds and no two
-  items overlap. Returns `:ok` or `{:error, reason}`.
+  Verify the packing is physically valid: the packed weight does not exceed the box maximum,
+  every item is within the box bounds and no two items overlap. Returns `:ok` or
+  `{:error, reason}`.
   """
   @spec validate(t()) :: :ok | {:error, term()}
-  def validate(%__MODULE__{box: box, items: items}) do
+  def validate(%__MODULE__{box: box, items: items} = pb) do
     packed = items.items
 
-    with :ok <- check_bounds(packed, box) do
+    with :ok <- check_weight(weight(pb), Box.max_weight(box)),
+         :ok <- check_bounds(packed, box) do
       check_overlaps(packed)
     end
   end
+
+  defp check_weight(weight, max_weight) when weight <= max_weight, do: :ok
+  defp check_weight(weight, max_weight), do: {:error, {:overweight, weight, max_weight}}
 
   defp max_extent(%PackedItemList{items: []}, _fun), do: 0
   defp max_extent(%PackedItemList{items: items}, fun), do: items |> Enum.map(fun) |> Enum.max()

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Now tracks BoxPacker v4.3.0 (previously v4.2.0). Packing results change for some inputs:
+generally more items fit per box and weight is balanced more evenly across boxes.
+
+### Changed
+
+- **Void filling** — after packing layers, the packer now fills any empty region left in
+  the box (pockets between items as well as gaps at the far ends), so more items fit in some
+  boxes (BoxPacker issues #214, #609).
+- **Orientation choice** — when every remaining item is the same size, the packer prefers
+  the orientation that fits more of them in the free space. Slab-like `:best_fit` items
+  (thinnest edge at most 30% of the longest) prefer lying flat. The look-ahead now
+  considers the next 7 items instead of 8 (BoxPacker #227, #268, #334, #366).
+- **Linked items** — the default item sort now keeps each `ExBoxPacker.LinkedItem` group
+  together (ungrouped items first, then groups by identifier). Previously, groups of
+  similar items could interleave until no candidate box held a complete group
+  (BoxPacker #664).
+- `ExBoxPacker.Result.PackedBox.validate/1` also returns
+  `{:error, {:overweight, weight, max_weight}}` when a box is over its maximum weight.
+
+### Fixed
+
+- Weight redistribution now matches BoxPacker in two edge cases: when a move between
+  boxes can only be half completed, and when the second box of a pair is the heavier one.
+  The e-commerce golden benchmark now matches BoxPacker in all 4,288 scenarios in both 2D
+  and 3D (previously 4,283 and 4,278).
+
 ## [0.2.1] - 2026-09-08
 
 No functional changes — `lib/` and `priv/` are untouched since 0.2.0. Documentation,

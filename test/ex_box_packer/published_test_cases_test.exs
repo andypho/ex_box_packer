@@ -18,7 +18,7 @@ defmodule ExBoxPacker.PublishedTestCasesTest do
   alias ExBoxPacker.Engine.VolumePacker
   alias ExBoxPacker.Result.PackedBox
   alias ExBoxPacker.SimpleBox
-  alias ExBoxPacker.Test.THPackTestItem
+  alias ExBoxPacker.Test.THPack
 
   @data_dir Path.join(__DIR__, "../support/data")
 
@@ -88,18 +88,18 @@ defmodule ExBoxPacker.PublishedTestCasesTest do
     [id, w, wv, l, lv, d, dv, qty] =
       line |> String.split(" ", trim: true)
 
-    item = %THPackTestItem{
-      description: "Item #{id}",
-      width: String.to_integer(w),
-      width_allowed_vertical: bool(wv),
-      length: String.to_integer(l),
-      length_allowed_vertical: bool(lv),
-      depth: String.to_integer(d),
-      depth_allowed_vertical: bool(dv),
-      quantity: String.to_integer(qty)
-    }
+    item =
+      THPack.new_item(
+        "Item #{id}",
+        String.to_integer(w),
+        bool(wv),
+        String.to_integer(l),
+        bool(lv),
+        String.to_integer(d),
+        bool(dv)
+      )
 
-    List.duplicate(item, item.quantity)
+    List.duplicate(item, String.to_integer(qty))
   end
 
   # PHP casts the string flag to bool: "0" -> false, anything else (e.g. "1") -> true.

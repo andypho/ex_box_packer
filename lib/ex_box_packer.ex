@@ -1,6 +1,6 @@
 defmodule ExBoxPacker do
   @moduledoc """
-  A faithful Elixir port of [BoxPacker](https://github.com/dvdoug/BoxPacker) (PHP, v4.2.0), a 3D
+  A faithful Elixir port of [BoxPacker](https://github.com/dvdoug/BoxPacker) (PHP, v4.3.0), a 3D
   bin-packing and box-selection engine. Given a set of items and a catalog of candidate boxes, it
   chooses which boxes to use and computes how to physically arrange the items inside each one:
   orthogonal rotation (`:never` / `:keep_flat` / `:best_fit`), per-box weight limits, weight

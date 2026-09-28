@@ -58,12 +58,14 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
 
   # Greedily move ALL beneficial items from the heavier of the two boxes to the lighter one in
   # a single call (port of PHP `equaliseWeight`'s `foreach ($overWeightBoxItems ...)` loop).
-  # Returns {:ok, new_a, new_b} (either may be nil if that box is eliminated) or :none.
+  # Returns {:ok, new_a, new_b} or :none. Like PHP (`$boxA = $newHeavier; $boxB = $newLighter`,
+  # or `$boxA = null` on elimination) the over box's result always goes back into slot A and
+  # the under box's into slot B, whichever of the pair was heavier going in.
   defp equalise(box_a, box_b, target, boxes, sorter) do
-    {over, under, over_is_a?} =
+    {over, under} =
       if PackedBox.weight(box_a) > PackedBox.weight(box_b),
-        do: {box_a, box_b, true},
-        else: {box_b, box_a, false}
+        do: {box_a, box_b},
+        else: {box_b, box_a}
 
     # Iterate the over box's items in BoxPacker's order (volume desc, then weight desc) —
     # PHP's equaliseWeight reads asItemArray() after PackedItemList has been sorted in place,
@@ -78,15 +80,15 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
       end)
 
     case result do
-      # A move eliminated the over box: over = nil, under = new_lighter.
+      # A move eliminated the over box: slot A empties, slot B takes the new lighter box.
       {:eliminated, new_lighter} ->
-        put_back(over_is_a?, nil, new_lighter)
+        {:ok, nil, new_lighter}
 
       {_over_remaining, _under_current, _over_box, _under_box, false} ->
         :none
 
       {_over_remaining, _under_current, over_box, under_box, true} ->
-        put_back(over_is_a?, over_box, under_box)
+        {:ok, over_box, under_box}
     end
   end
 
@@ -116,20 +118,20 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
     end
   end
 
-  # Repack the over box's remaining items; if they don't fit in exactly one box, revert (be
-  # defensive — PHP asserts n-1 always fits). Otherwise commit the move and continue.
+  # Repack the over box's remaining items and, if they fit in exactly one box, commit the move.
+  # If they don't, BoxPacker leaves the boxes alone but does NOT revert its item lists (its
+  # `continue` comes after moving the item across), so later candidates are judged against the
+  # tentatively-moved lists. Mirror that rather than reverting.
   defp finish_move(over_remaining, under_current, new_lighter, prev_state, boxes, sorter) do
+    {_, _, over_box, under_box, any_moved?} = prev_state
+
     with {heavier, []} <- repack(boxes, over_remaining, sorter),
          true <- PackedBoxList.count(heavier) == 1 do
       {over_remaining, under_current, PackedBoxList.top(heavier), new_lighter, true}
     else
-      _ -> prev_state
+      _ -> {over_remaining, under_current, over_box, under_box, any_moved?}
     end
   end
-
-  # Map the new over/under boxes back to the a/b positions.
-  defp put_back(true = _over_is_a?, new_over, new_under), do: {:ok, new_over, new_under}
-  defp put_back(false, new_over, new_under), do: {:ok, new_under, new_over}
 
   # Does `item` implement the optional LinkedItem protocol? Routed through `apply/3` for the
   # same reason as Packer.initial_quantities (avoid a spurious unreachable-branch warning).
