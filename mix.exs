@@ -20,7 +20,11 @@ defmodule ExBoxPacker.MixProject do
       package: package(),
       docs: docs(),
       source_url: @source_url,
-      dialyzer: [plt_add_apps: [:mix]]
+      dialyzer: [
+        plt_add_apps: [:mix],
+        plt_local_path: "plts",
+        plt_core_path: "plts"
+      ]
     ]
   end
 

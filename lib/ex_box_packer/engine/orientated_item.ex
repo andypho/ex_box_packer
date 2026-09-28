@@ -8,14 +8,14 @@ defmodule ExBoxPacker.Engine.OrientatedItem do
   defstruct [:item, :width, :length, :depth, :surface_footprint]
 
   @type t :: %__MODULE__{
-          item: Item.t(),
+          item: ItemSpec.t(),
           width: integer(),
           length: integer(),
           depth: integer(),
           surface_footprint: integer()
         }
 
-  @spec new(Item.t(), integer(), integer(), integer()) :: t()
+  @spec new(ItemSpec.t(), integer(), integer(), integer()) :: t()
   def new(item, width, length, depth) do
     %__MODULE__{
       item: item,

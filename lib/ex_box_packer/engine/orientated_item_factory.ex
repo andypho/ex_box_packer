@@ -1,7 +1,7 @@
 defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   @moduledoc false
 
-  alias ExBoxPacker.{Box, ConstrainedPlacementItem, Item}
+  alias ExBoxPacker.{Box, ConstrainedPlacementItem}
   alias ExBoxPacker.Engine.{Cache, ItemSpec, OrientatedItem, OrientatedItemSorter, WorkingVolume}
   alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList}
 
@@ -28,7 +28,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   dimension signature preserving first-occurrence order. If `prev_item` shares the same
   set of dimensions, its exact orientation is reused (a 1-element list).
   """
-  @spec generate_permutations(Item.t(), OrientatedItem.t() | nil) :: [dims()]
+  @spec generate_permutations(ItemSpec.t(), OrientatedItem.t() | nil) :: [dims()]
   def generate_permutations(item, prev_item) do
     if prev_item && OrientatedItem.same_dimensions?(prev_item, item) do
       [{prev_item.width, prev_item.length, prev_item.depth}]
@@ -62,7 +62,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   `WorkingVolume`), each candidate is additionally filtered through the item's
   `can_be_packed?/8` hook. Port of BoxPacker's `getPossibleOrientations`.
   """
-  @spec possible_orientations(Item.t(), OrientatedItem.t() | nil, dims(), ctx()) ::
+  @spec possible_orientations(ItemSpec.t(), OrientatedItem.t() | nil, dims(), ctx()) ::
           [OrientatedItem.t()]
   def possible_orientations(item, prev_item, {wl, ll, dl}, ctx \\ %{}) do
     orientations =
@@ -150,7 +150,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   gravity, or filling the full box depth). Fall back to unstable ones only if the item
   has no stable orientation even in an empty box.
   """
-  @spec usable_orientations(Box.t(), Item.t(), [OrientatedItem.t()]) :: [OrientatedItem.t()]
+  @spec usable_orientations(Box.t(), ItemSpec.t(), [OrientatedItem.t()]) :: [OrientatedItem.t()]
   def usable_orientations(box, item, possible) do
     inner_depth = Box.inner_depth(box)
 
@@ -165,7 +165,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   end
 
   @doc "True if `item` has at least one stable orientation when placed in an empty `box`."
-  @spec has_stable_orientations_in_empty_box?(Box.t(), Item.t()) :: boolean()
+  @spec has_stable_orientations_in_empty_box?(Box.t(), ItemSpec.t()) :: boolean()
   def has_stable_orientations_in_empty_box?(box, item) do
     key =
       {:empty_stable, item.width, item.length, item.depth, item.rotation, Box.inner_width(box),
@@ -192,10 +192,10 @@ defmodule ExBoxPacker.Engine.OrientatedItemFactory do
   """
   @spec best_orientation(
           Box.t(),
-          Item.t(),
+          ItemSpec.t(),
           OrientatedItem.t() | nil,
           dims(),
-          [Item.t()],
+          [ItemSpec.t()],
           integer(),
           boolean(),
           boolean(),

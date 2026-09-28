@@ -22,7 +22,7 @@ defmodule ExBoxPacker.Engine.LinkedItemGroupEnforcer do
   `remaining_items` list. Returns a possibly-repacked `PackedBox` (always using the
   original candidate's box). `strict?` maps to VolumePacker's `strict_ordering?`.
   """
-  @spec enforce_constraint(PackedBox.t(), [ExBoxPacker.Item.t()], boolean()) :: PackedBox.t()
+  @spec enforce_constraint(PackedBox.t(), [ItemSpec.t()], boolean()) :: PackedBox.t()
   def enforce_constraint(%PackedBox{} = candidate, remaining_items, strict?) do
     if has_linked_items?(remaining_items) do
       loop(candidate, candidate, remaining_items, %{}, strict?)

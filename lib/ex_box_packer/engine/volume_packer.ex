@@ -7,14 +7,23 @@ defmodule ExBoxPacker.Engine.VolumePacker do
   """
 
   alias ExBoxPacker.{Box, ConstrainedPlacementItem, Item}
-  alias ExBoxPacker.Engine.{Cache, ItemList, LayerPacker, LayerStabiliser, OrientatedItemFactory}
+
+  alias ExBoxPacker.Engine.{
+    Cache,
+    ItemList,
+    ItemSpec,
+    LayerPacker,
+    LayerStabiliser,
+    OrientatedItemFactory
+  }
+
   alias ExBoxPacker.Result.{PackedBox, PackedItem, PackedItemList, PackedLayer}
 
   @doc """
   Pack `items` into `box`. `opts`: `single_pass?` (default false), `strict_ordering?`
   (default false). Returns a `PackedBox` (items that don't fit are simply absent).
   """
-  @spec pack(Box.t(), [Item.t()], keyword()) :: PackedBox.t()
+  @spec pack(Box.t(), [Item.t() | ItemSpec.t()], keyword()) :: PackedBox.t()
   def pack(box, items, opts \\ []) do
     # When called nested (from Packer or the look-ahead) `with_cache` detects the existing
     # cache and is a no-op wrapper, so the whole pack tree shares ONE cache.
