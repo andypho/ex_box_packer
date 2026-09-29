@@ -3,6 +3,8 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
 
   import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
 
+  alias ExBoxPacker.Boolean
+
   alias ExBoxPacker.Engine.{
     Cache,
     OrientatedItem,
@@ -99,13 +101,10 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
          b
        )
        when longest != 0 and thin / longest <= @slab_aspect_ratio do
-    cmp(bool_to_int(b.depth == thin), bool_to_int(a.depth == thin))
+    cmp(Boolean.to_integer(b.depth == thin), Boolean.to_integer(a.depth == thin))
   end
 
   defp slab_decider(_a, _b), do: 0
-
-  defp bool_to_int(true), do: 1
-  defp bool_to_int(false), do: 0
 
   # Prefer an orientation that still leaves room for the next item(s). Cheap check first:
   # does the next item fit at all after `a` vs `b`. When that ties, run the partial packing
