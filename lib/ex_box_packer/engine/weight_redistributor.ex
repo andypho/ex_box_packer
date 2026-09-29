@@ -18,29 +18,29 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
     packed
     |> PackedBoxList.to_list()
     |> Enum.sort(&(PackedBox.weight(&1) >= PackedBox.weight(&2)))
-    |> loop(target, boxes, sorter)
+    |> loop(target, boxes)
     |> PackedBoxList.from_list(sorter)
   end
 
-  defp loop(box_list, target, boxes, sorter) do
-    case find_and_equalise(box_list, target, boxes, sorter) do
-      {:ok, new_list} -> loop(new_list, target, boxes, sorter)
+  defp loop(box_list, target, boxes) do
+    case find_and_equalise(box_list, target, boxes) do
+      {:ok, new_list} -> loop(new_list, target, boxes)
       :none -> box_list
     end
   end
 
   # Find the first pair (a < b) with differing weights where a beneficial move succeeds.
-  defp find_and_equalise(box_list, target, boxes, sorter) do
+  defp find_and_equalise(box_list, target, boxes) do
     indexed = Enum.with_index(box_list)
 
     Enum.find_value(indexed, :none, fn {box_a, a} ->
-      Enum.find_value(indexed, &try_pair(&1, box_a, a, box_list, target, boxes, sorter))
+      Enum.find_value(indexed, &try_pair(&1, box_a, a, box_list, target, boxes))
     end)
   end
 
-  defp try_pair({box_b, b}, box_a, a, box_list, target, boxes, sorter) do
+  defp try_pair({box_b, b}, box_a, a, box_list, target, boxes) do
     if b > a and PackedBox.weight(box_a) != PackedBox.weight(box_b) do
-      apply_move(equalise(box_a, box_b, target, boxes, sorter), a, b, box_list)
+      apply_move(equalise(box_a, box_b, target, boxes), a, b, box_list)
     end
   end
 
@@ -61,7 +61,7 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
   # Returns {:ok, new_a, new_b} or :none. Like PHP (`$boxA = $newHeavier; $boxB = $newLighter`,
   # or `$boxA = null` on elimination) the over box's result always goes back into slot A and
   # the under box's into slot B, whichever of the pair was heavier going in.
-  defp equalise(box_a, box_b, target, boxes, sorter) do
+  defp equalise(box_a, box_b, target, boxes) do
     {over, under} =
       if PackedBox.weight(box_a) > PackedBox.weight(box_b),
         do: {box_a, box_b},
@@ -76,7 +76,7 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
     # Iterate the ORIGINAL over_items in order, threading the mutating state.
     result =
       Enum.reduce(over_items, {over_items, under_items, over, under, false}, fn item, state ->
-        try_move(item, state, target, boxes, sorter)
+        try_move(item, state, target, boxes)
       end)
 
     case result do
@@ -93,14 +93,14 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
   end
 
   # Once the over box has been eliminated, later iterations are no-ops.
-  defp try_move(_item, {:eliminated, _} = done, _target, _boxes, _sorter), do: done
+  defp try_move(_item, {:eliminated, _} = done, _target, _boxes), do: done
 
-  defp try_move(item, state, target, boxes, sorter) do
+  defp try_move(item, state, target, boxes) do
     {over_remaining, under_current, _over_box, _under_box, _any_moved?} = state
 
     with false <- linked_item?(item),
          true <- would_help?(over_remaining, item, under_current, target),
-         {lighter, []} <- repack(boxes, under_current ++ [item], sorter),
+         {lighter, []} <- repack(boxes, under_current ++ [item]),
          true <- PackedBoxList.count(lighter) == 1 do
       new_lighter = PackedBoxList.top(lighter)
       new_under_current = under_current ++ [item]
@@ -110,7 +110,7 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
         {:eliminated, new_lighter}
       else
         new_over_remaining = List.delete(over_remaining, item)
-        finish_move(new_over_remaining, new_under_current, new_lighter, state, boxes, sorter)
+        finish_move(new_over_remaining, new_under_current, new_lighter, state, boxes)
       end
     else
       # LinkedItem, not helpful, or would not fit in a single box — skip this item.
@@ -122,10 +122,10 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
   # If they don't, BoxPacker leaves the boxes alone but does NOT revert its item lists (its
   # `continue` comes after moving the item across), so later candidates are judged against the
   # tentatively-moved lists. Mirror that rather than reverting.
-  defp finish_move(over_remaining, under_current, new_lighter, prev_state, boxes, sorter) do
+  defp finish_move(over_remaining, under_current, new_lighter, prev_state, boxes) do
     {_, _, over_box, under_box, any_moved?} = prev_state
 
-    with {heavier, []} <- repack(boxes, over_remaining, sorter),
+    with {heavier, []} <- repack(boxes, over_remaining),
          true <- PackedBoxList.count(heavier) == 1 do
       {over_remaining, under_current, PackedBoxList.top(heavier), new_lighter, true}
     else
@@ -138,8 +138,10 @@ defmodule ExBoxPacker.Engine.WeightRedistributor do
   # credo:disable-for-next-line Credo.Check.Refactor.Apply
   defp linked_item?(item), do: apply(ExBoxPacker.LinkedItem, :impl_for, [item]) != nil
 
-  defp repack(boxes, items, sorter) do
-    Packer.pack_all_possible(boxes, items, packed_box_sorter: sorter, enforce_single_box?: true)
+  # Like PHP's doVolumeRepack (a fresh `new Packer()`), repacks use the default packed-box
+  # sorter; the caller's sorter only orders the final list.
+  defp repack(boxes, items) do
+    Packer.pack_all_possible(boxes, items, enforce_single_box?: true)
   end
 
   # Would moving `item` from over to under reduce the 2-box weight variance without

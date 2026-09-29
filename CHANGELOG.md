@@ -20,9 +20,9 @@ generally more items fit per box and weight is balanced more evenly across boxes
   (thinnest edge at most 30% of the longest) prefer lying flat. The look-ahead now
   considers the next 7 items instead of 8 (BoxPacker #227, #268, #334, #366).
 - **Linked items** — the default item sort now keeps each `ExBoxPacker.LinkedItem` group
-  together (ungrouped items first, then groups by identifier). Previously, groups of
-  similar items could interleave until no candidate box held a complete group
-  (BoxPacker #664).
+  together (ungrouped items first, then groups in identifier order, with numeric identifiers
+  compared as numbers, so `"9"` comes before `"10"`). Previously, groups of similar items could
+  interleave until no candidate box held a complete group (BoxPacker #664).
 - `ExBoxPacker.Result.PackedBox.validate/1` also returns
   `{:error, {:overweight, weight, max_weight}}` when a box is over its maximum weight.
 
@@ -32,6 +32,11 @@ generally more items fit per box and weight is balanced more evenly across boxes
   boxes can only be half completed, and when the second box of a pair is the heavier one.
   The e-commerce golden benchmark now matches BoxPacker in all 4,288 scenarios in both 2D
   and 3D (previously 4,283 and 4,278).
+- Weight redistribution repacks boxes with the default packed-box sorter, as BoxPacker does.
+  A custom `:packed_box_sorter` now only orders the final result; previously it also changed
+  which box each repack chose.
+- Items that tie on volume and weight are ordered by description the way BoxPacker does:
+  numeric descriptions compare as numbers (`"9"` before `"10"`).
 
 ## [0.2.1] - 2026-09-08
 

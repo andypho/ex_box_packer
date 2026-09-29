@@ -9,7 +9,7 @@ defmodule ExBoxPacker.EfficiencyTest do
   by BoxPacker.
 
   FIDELITY / characterization test, excluded from the default suite via
-  `@moduletag :benchmark`. Reports the exact-match rate rather than failing on divergence.
+  `@moduletag :benchmark`. Reports the exact-match rate and fails on any divergence.
   """
   use ExUnit.Case, async: true
 
@@ -140,8 +140,8 @@ defmodule ExBoxPacker.EfficiencyTest do
 
     total = length(order)
 
-    {matches_2d, matches_3d} =
-      Enum.reduce(order, {0, 0}, fn key, {m2, m3} ->
+    {mismatches_2d, mismatches_3d} =
+      Enum.reduce(order, {[], []}, fn key, {m2, m3} ->
         entries = Map.fetch!(items_map, key)
         exp = Map.fetch!(expected, key)
         requested = Enum.reduce(entries, 0, &(&2 + &1.qty))
@@ -159,14 +159,15 @@ defmodule ExBoxPacker.EfficiencyTest do
             res3.utilisation == exp.utilisation_3d and
             res3.weight_variance == exp.weight_variance_3d
 
-        {m2 + if(ok2, do: 1, else: 0), m3 + if(ok3, do: 1, else: 0)}
+        {if(ok2, do: m2, else: [key | m2]), if(ok3, do: m3, else: [key | m3])}
       end)
 
     IO.puts("\nEfficiency (all #{total} scenarios, no sampling)")
-    IO.puts("Efficiency 3D: #{matches_3d}/#{total} exact matches")
-    IO.puts("Efficiency 2D: #{matches_2d}/#{total} exact matches")
+    IO.puts("Efficiency 3D: #{total - length(mismatches_3d)}/#{total} exact matches")
+    IO.puts("Efficiency 2D: #{total - length(mismatches_2d)}/#{total} exact matches")
 
     assert total == 4288
-    assert matches_2d >= 0 and matches_3d >= 0
+    assert Enum.reverse(mismatches_3d) == []
+    assert Enum.reverse(mismatches_2d) == []
   end
 end

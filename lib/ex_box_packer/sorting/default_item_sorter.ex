@@ -1,14 +1,15 @@
 defmodule ExBoxPacker.Sorting.DefaultItemSorter do
   @moduledoc """
   Default item ordering: linked group asc (ungrouped items first), then volume desc, then
-  weight desc, then description asc.
+  weight desc, then description asc. Groups and descriptions compare like PHP's `<=>`, so
+  numeric strings order numerically (`"9"` before `"10"`).
 
   Keeping each `ExBoxPacker.LinkedItem` group contiguous gives its members the best chance of
   landing in the same box (BoxPacker #664).
   """
   @behaviour ExBoxPacker.Sorting.ItemSorter
 
-  import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
+  import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2, string_cmp: 2]
   alias ExBoxPacker.{Item, LinkedItem}
 
   @impl true
@@ -16,7 +17,7 @@ defmodule ExBoxPacker.Sorting.DefaultItemSorter do
     case {linked_item_group(a), linked_item_group(b)} do
       {same, same} -> compare_by_size(a, b)
       # PHP `null <=> "group"` coerces null to "", so ungrouped items sort before grouped ones.
-      {group_a, group_b} -> cmp(group_a || "", group_b || "")
+      {group_a, group_b} -> string_cmp(group_a, group_b)
     end
   end
 
@@ -27,7 +28,7 @@ defmodule ExBoxPacker.Sorting.DefaultItemSorter do
     case cmp(vol_b, vol_a) do
       0 ->
         case cmp(Item.weight(b), Item.weight(a)) do
-          0 -> cmp(Item.description(a), Item.description(b))
+          0 -> string_cmp(Item.description(a), Item.description(b))
           weight_decider -> weight_decider
         end
 
