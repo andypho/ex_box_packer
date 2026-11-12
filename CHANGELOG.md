@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-11-12
 
 Now tracks BoxPacker v4.3.0 (previously v4.2.0). Packing results change for some inputs:
 generally more items fit per box and weight is balanced more evenly across boxes.
@@ -25,6 +25,9 @@ generally more items fit per box and weight is balanced more evenly across boxes
   interleave until no candidate box held a complete group (BoxPacker #664).
 - `ExBoxPacker.Result.PackedBox.validate/1` also returns
   `{:error, {:overweight, weight, max_weight}}` when a box is over its maximum weight.
+- Faster packing: each item's dimensions, weight and rotation are read once per pack instead
+  of through the `ExBoxPacker.Item` protocol on every access, and orientation generation skips
+  de-duplication when all three dimensions differ.
 
 ### Fixed
 
@@ -37,6 +40,14 @@ generally more items fit per box and weight is balanced more evenly across boxes
   which box each repack chose.
 - Items that tie on volume and weight are ordered by description the way BoxPacker does:
   numeric descriptions compare as numbers (`"9"` before `"10"`).
+
+### Security
+
+- The development lock file now pins `plug_crypto` 2.2.1, which fixes EEF-CVE-2026-105963
+  (secret key base exposed in stack traces when `Plug.Crypto` functions get wrong-typed
+  arguments). `plug_crypto` comes in through the optional `plug` dependency used by the dev
+  preview. Apps resolve it in their own lock file, so if yours has 2.2.0, run
+  `mix deps.update plug_crypto`.
 
 ## [0.2.1] - 2026-09-08
 
@@ -120,6 +131,7 @@ Initial release: a feature-complete, faithful Elixir port of
   - Packing timeout via the `:timeout` option, raising `ExBoxPacker.TimeoutError` once the
     deadline is exceeded.
 
+[0.3.0]: https://github.com/andypho/ex_box_packer/releases/tag/v0.3.0
 [0.2.1]: https://github.com/andypho/ex_box_packer/releases/tag/v0.2.1
 [0.2.0]: https://github.com/andypho/ex_box_packer/releases/tag/v0.2.0
 [0.1.0]: https://github.com/andypho/ex_box_packer/releases/tag/v0.1.0
