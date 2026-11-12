@@ -153,6 +153,27 @@ defmodule ExBoxPacker.PackerTest do
     assert PackedBoxList.top(custom_pbl).box.reference == "Box #2"
   end
 
+  # BoxPacker's WeightRedistributor repacks each pair with a fresh Packer, so the default
+  # packed-box sorter picks each repacked box; the custom sorter only orders the final list.
+  # Expected values are BoxPacker 4.3.0's.
+  test "weight redistribution repacks with the default packed box sorter" do
+    boxes = [box("Z", 8, 3, 3, 0, 110), box("M", 8, 2, 8, 4, 86)]
+
+    items =
+      List.duplicate(item("i0", 1, 2, 1, 29, :best_fit), 2) ++
+        List.duplicate(item("i1", 4, 2, 2, 5, :best_fit), 2) ++
+        List.duplicate(item("i2", 4, 1, 4, 5, :best_fit), 3)
+
+    {:ok, pbl} = Packer.pack(boxes, items, packed_box_sorter: ReverseRefSorter)
+
+    summary =
+      pbl
+      |> PackedBoxList.to_list()
+      |> Enum.map(&{&1.box.reference, PackedBox.weight(&1), PackedItemList.count(&1.items)})
+
+    assert summary == [{"Z", 58, 2}, {"M", 29, 5}]
+  end
+
   test "enforce_single_box? refuses to spill across boxes" do
     boxes = [box("B", 1, 1, 2, 0, 1_000)]
     items = List.duplicate(item("i", 1, 1, 1, 1, :best_fit), 3)
@@ -264,6 +285,174 @@ defmodule ExBoxPacker.PackerTest do
 
     # Linked pair together in one box, filler alone in the other.
     assert groups == [["A1", "A2"], ["Filler"]]
+  end
+
+  # Faithful ports of PackerTest::testIssue275B / testIssue275D (skipped upstream until void
+  # filling landed in BoxPacker 4.3.0): 20 cartons fit on one EuroPallet.
+  for {label, height_47} <- [{"275B", [590, 390, 470]}, {"275D", [590, 470, 390]}] do
+    test "issue #{label}: all cartons fit on a single pallet" do
+      [w47, l47, d47] = unquote(height_47)
+      pallet = box("EuroPallet", 1200, 800, 2150, 0, 400_000)
+
+      items =
+        List.duplicate(item("height 39", 590, 390, 390, 10_880, :best_fit), 5) ++
+          List.duplicate(item("height 47", w47, l47, d47, 10_890, :best_fit), 6) ++
+          List.duplicate(item("height 33", 590, 390, 330, 10_060, :best_fit), 9)
+
+      {:ok, pbl} = Packer.pack([pallet], items, max_boxes_to_balance_weight: 0)
+      assert PackedBoxList.count(pbl) == 1
+    end
+  end
+
+  # Faithful port of PackerTest::testIssue334 (skipped upstream until BoxPacker 4.3.0).
+  test "issue 334: 18 items fit in one box" do
+    boxes = [box("Medium box", 600, 400, 400, 5000, 18_000_000)]
+    items = List.duplicate(item("TEST001", 130, 130, 240, 250_000, :best_fit), 18)
+
+    {:ok, pbl} = Packer.pack(boxes, items)
+    assert PackedBoxList.count(pbl) == 1
+  end
+
+  # Faithful port of WeightRedistributorTest::testWeightRedistributionDoesNotSilentlyDropItems
+  # (new in BoxPacker 4.3.0). Two boxes of six items each go in; rebalancing their weights
+  # must not lose any items.
+  test "weight redistribution does not silently drop items" do
+    limited_box = %LimitedSupplyTestBox{
+      reference: "Box",
+      outer_width: 29,
+      outer_length: 29,
+      outer_depth: 29,
+      empty_weight: 0,
+      inner_width: 29,
+      inner_length: 29,
+      inner_depth: 29,
+      max_weight: 68,
+      quantity: 2
+    }
+
+    items =
+      List.duplicate(item("Item 0", 10, 10, 10, 2, :best_fit), 2) ++
+        [item("Item 1", 10, 10, 10, 3, :best_fit), item("Item 2", 10, 10, 10, 4, :best_fit)] ++
+        List.duplicate(item("Item 3", 10, 10, 10, 8, :best_fit), 5) ++
+        List.duplicate(item("Item 4", 10, 10, 10, 18, :best_fit), 3)
+
+    {:ok, pbl} = Packer.pack([limited_box], items)
+    assert PackedBoxList.count(pbl) == 2
+
+    packed_count =
+      pbl |> PackedBoxList.to_list() |> Enum.map(&PackedItemList.count(&1.items)) |> Enum.sum()
+
+    assert packed_count == 12
+  end
+
+  # EfficiencyTest scenario 4162ac2e… (3D). Moving the first 199g item repacks the lighter box
+  # fine but the heavier box's n-1 items no longer fit one box; BoxPacker keeps that tentative
+  # move in its item lists anyway (no revert), which is what lets the next move rebalance.
+  # Expected values are BoxPacker 4.3.0's.
+  test "weight redistribution keeps a tentative move when the heavier repack fails" do
+    boxes = [
+      full_box("Option 1", {230, 300, 240}, 160, 230, 300, 240, 15_000),
+      full_box("Option 2", {370, 375, 60}, 140, 364, 374, 40, 3000),
+      full_box("Option 3", {229, 305, 520}, 100, 229, 305, 520, 10_000),
+      full_box("Option 4", {240, 270, 15}, 10, 220, 260, 15, 500)
+    ]
+
+    items =
+      List.duplicate(item("ad99cb07", 80, 285, 70, 199, :best_fit), 20) ++
+        List.duplicate(item("aeb891af", 39, 173, 23, 52, :best_fit), 40)
+
+    {:ok, pbl} = Packer.pack(boxes, items)
+    packed_boxes = PackedBoxList.to_list(pbl)
+
+    assert Enum.map(packed_boxes, & &1.box.reference) == ["Option 3", "Option 3"]
+    assert packed_boxes |> Enum.map(&PackedBox.weight/1) |> Enum.sort() == [3096, 3164]
+    assert PackedBoxList.weight_variance(pbl) == 1156.0
+  end
+
+  # EfficiencyTest scenario 8b888d77… (3D). After a successful move BoxPacker always stores
+  # the over box's repack in slot A and the under box's in slot B (`$boxA = $newHeavier`),
+  # even when B was the heavier box going in. That changes which pair is tried next, so the
+  # port must write the boxes back the same way. Expected values are BoxPacker 4.3.0's.
+  test "weight redistribution writes the heavier repack back to the first slot of the pair" do
+    boxes = [
+      full_box("Option 1", {230, 300, 240}, 160, 230, 300, 240, 15_000),
+      full_box("Option 2", {370, 375, 60}, 140, 364, 374, 40, 3000),
+      full_box("Option 3", {229, 305, 520}, 100, 229, 305, 520, 10_000),
+      full_box("Option 4", {240, 270, 15}, 10, 220, 260, 15, 500)
+    ]
+
+    items =
+      List.duplicate(item("8c9f15e5", 210, 297, 10, 640, :best_fit), 20) ++
+        List.duplicate(item("6419caea", 210, 297, 8, 300, :best_fit), 20) ++
+        List.duplicate(item("3dfc9fac", 225, 260, 32, 1194, :best_fit), 20)
+
+    {:ok, pbl} = Packer.pack(boxes, items)
+    packed_boxes = PackedBoxList.to_list(pbl)
+
+    weights = packed_boxes |> Enum.map(&PackedBox.weight/1) |> Enum.sort()
+
+    assert Enum.map(packed_boxes, & &1.box.reference) == List.duplicate("Option 1", 5)
+    assert weights == [8350, 8350, 8442, 8454, 9884]
+    assert PackedBoxList.weight_variance(pbl) == 354_771.2
+  end
+
+  # Port of PackerTest::testLinkedItemGroupsAreNotFragmentedAcrossCandidateBoxes (BoxPacker #664).
+  # Without the linked-group sort key, near-identical groups interleave, every candidate box
+  # ends up holding only partial groups, the enforcer discards them all, and no box is chosen.
+  test "linked item groups are not fragmented across candidate boxes" do
+    boxes = [box("Small box", 24, 16, 10, 0, 3000), box("Medium box", 22, 21, 10, 0, 3000)]
+
+    items =
+      for i <- 0..3, {suffix, length, weight} <- [{"a", 10, 7}, {"b", 11, 3}] do
+        %LinkedTestItem{
+          description: "g#{i}-#{suffix}",
+          width: 10,
+          length: length,
+          depth: 10,
+          weight: weight,
+          allowed_rotation: :best_fit,
+          linked_item_group: "group-#{i}"
+        }
+      end
+
+    assert {:ok, pbl} = Packer.pack(boxes, items)
+    assert PackedBoxList.count(pbl) == 2
+
+    packed_count =
+      pbl |> PackedBoxList.to_list() |> Enum.map(&PackedItemList.count(&1.items)) |> Enum.sum()
+
+    assert packed_count == 8
+  end
+
+  # BoxPacker orders linked groups with PHP's `<=>`, which compares numeric strings as numbers
+  # ("9" < "10" < "11"), so G9 and G10 share the first box. A byte-wise order ("10" < "11" <
+  # "9") pairs G10 with G11 instead. Expected values are BoxPacker 4.3.0's.
+  test "numeric linked-group identifiers are ordered numerically" do
+    boxes = [box("Box", 10, 10, 15, 0, 1000)]
+
+    items =
+      for {desc, depth, group} <- [{"G9", 10, "9"}, {"G10", 5, "10"}, {"G11", 10, "11"}] do
+        %LinkedTestItem{
+          description: desc,
+          width: 10,
+          length: 10,
+          depth: depth,
+          weight: 1,
+          allowed_rotation: :keep_flat,
+          linked_item_group: group
+        }
+      end
+
+    {:ok, pbl} = Packer.pack(boxes, items)
+
+    contents =
+      pbl
+      |> PackedBoxList.to_list()
+      |> Enum.map(fn pb ->
+        pb.items |> PackedItemList.as_items() |> Enum.map(& &1.description) |> Enum.sort()
+      end)
+
+    assert contents == [["G10", "G9"], ["G11"]]
   end
 
   # Port of PackerTest::testTimeoutException. A `timeout: 0.0` makes the deadline "now", so

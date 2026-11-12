@@ -83,4 +83,15 @@ defmodule ExBoxPacker.PackedBoxTest do
 
     assert {:error, {:overlap, _, _}} = PackedBox.validate(pb)
   end
+
+  # Box weighs 100 empty with a 1000 max, so 900 of items is the limit.
+  test "validate/1 accepts a packing exactly at the max weight" do
+    pb = packed_box([PackedItem.new(item("a", 5, 5, 5, 900), 0, 0, 0, 5, 5, 5)])
+    assert PackedBox.validate(pb) == :ok
+  end
+
+  test "validate/1 detects a packing over the max weight" do
+    pb = packed_box([PackedItem.new(item("a", 5, 5, 5, 901), 0, 0, 0, 5, 5, 5)])
+    assert {:error, {:overweight, 1001, 1000}} = PackedBox.validate(pb)
+  end
 end

@@ -110,14 +110,15 @@ defmodule ExBoxPacker.VolumePackerTest do
     assert fitted(VolumePacker.pack(box148.(), items_kf)) == 12
   end
 
-  # Faithful port of VolumePackerTest::testIssue147A. Default pack fits 14; the less
-  # efficient pack-across-width-only mode (packAcrossWidthOnly => single_pass) fits 13.
-  test "issue 147A: 14 items fit normally, 13 with pack-across-width-only" do
+  # Faithful port of VolumePackerTest::testIssue147A. Default pack fits 14; since BoxPacker
+  # 4.3.0 the pack-across-width-only mode (packAcrossWidthOnly => single_pass) also fits all
+  # 14 (it historically left one out).
+  test "issue 147A: 14 items fit normally and with pack-across-width-only" do
     items = List.duplicate(item(90, 200, 200, 150, :keep_flat), 14)
     box147a = full_box(250, 1360, 260, 0, 250, 1360, 260, 30_000)
 
     assert fitted(VolumePacker.pack(box147a, items)) == 14
-    assert fitted(VolumePacker.pack(box147a, items, single_pass?: true)) == 13
+    assert fitted(VolumePacker.pack(box147a, items, single_pass?: true)) == 14
   end
 
   # Faithful port of VolumePackerTest::testIssue147B (two BestFit items, two orientations).
@@ -150,6 +151,65 @@ defmodule ExBoxPacker.VolumePackerTest do
 
     items_b = List.duplicate(item1, 6) ++ List.duplicate(item2, 2)
     assert fitted(VolumePacker.pack(box161.(), items_b)) == 8
+  end
+
+  # Faithful port of VolumePackerTest::testIssue214 (skipped upstream until void filling
+  # landed in BoxPacker 4.3.0).
+  for rotation <- [:keep_flat, :best_fit] do
+    test "issue 214: 4 items fit (#{rotation})" do
+      rotation = unquote(rotation)
+      box214 = full_box(279, 215, 139, 10, 279, 215, 139, 100_000)
+
+      items =
+        List.duplicate(item(160, 160, 64, 1, rotation), 2) ++
+          List.duplicate(item(203, 114, 51, 1, rotation), 2)
+
+      assert fitted(VolumePacker.pack(box214, items)) == 4
+    end
+  end
+
+  # Faithful port of VolumePackerTest::testIssue609 (skipped upstream until void filling
+  # landed in BoxPacker 4.3.0).
+  test "issue 609: 6 items fit" do
+    box609 = full_box(340, 350, 30, 80, 220, 310, 26, 2000)
+
+    items =
+      List.duplicate(item(130, 140, 10, 100, :best_fit), 4) ++
+        List.duplicate(item(70, 110, 17, 100, :best_fit), 2)
+
+    assert fitted(VolumePacker.pack(box609, items)) == 6
+  end
+
+  # Faithful port of VolumePackerTest::testIssue227 (tessellation-aware orientation choice,
+  # added in BoxPacker 4.3.0).
+  test "issue 227: 11 items fit" do
+    items = List.duplicate(item(42, 100, 70, 1, :best_fit), 11)
+    assert fitted(VolumePacker.pack(box(160, 180, 160, 1000), items)) == 11
+  end
+
+  # Faithful port of VolumePackerTest::testIssue268 (skipped upstream until BoxPacker 4.3.0).
+  for rotation <- [:keep_flat, :best_fit] do
+    test "issue 268: 60 items fit (#{rotation})" do
+      items = List.duplicate(item(140, 35, 30, 0, unquote(rotation)), 60)
+      assert fitted(VolumePacker.pack(box(280, 175, 180, 100_000), items)) == 60
+    end
+  end
+
+  # Faithful port of VolumePackerTest::testIssue366 (skipped upstream until BoxPacker 4.3.0).
+  test "issue 366: 18 items fit on a single-height pallet" do
+    items = List.duplicate(item(30, 70, 1, 1, :best_fit), 18)
+    assert fitted(VolumePacker.pack(box(250, 160, 1, 100), items)) == 18
+  end
+
+  # BoxPacker 4.3.0 skips a layer's lengthwise fill when no length is left for it. Running it
+  # anyway (as 4.2.0 did) searches an empty region: the other two cubes are set aside as
+  # skipped, the too-heavy item is dropped, and the pass ends with those cubes never requeued,
+  # so only 1 cube is packed. Expected values are BoxPacker 4.3.0's.
+  test "no lengthwise fill when the layer already uses the full length" do
+    items =
+      List.duplicate(item(10, 10, 10, 1, :best_fit), 3) ++ [item(5, 5, 5, 100, :best_fit)]
+
+    assert fitted(VolumePacker.pack(box(30, 10, 10, 10), items)) == 3
   end
 
   # Faithful port of VolumePackerTest::testIssue164 (10 distinct BestFit items).

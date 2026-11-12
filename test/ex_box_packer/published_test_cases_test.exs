@@ -8,7 +8,8 @@ defmodule ExBoxPacker.PublishedTestCasesTest do
 
   These are FIDELITY / characterization tests, excluded from the default suite
   via `@moduletag :benchmark`. They are NOT tests of correctness — see the header
-  comment in the PHP original.
+  comment in the PHP original — but they do fail on any divergence from BoxPacker
+  beyond the known mismatches listed below.
   """
   use ExUnit.Case, async: true
 
@@ -18,9 +19,15 @@ defmodule ExBoxPacker.PublishedTestCasesTest do
   alias ExBoxPacker.Engine.VolumePacker
   alias ExBoxPacker.Result.PackedBox
   alias ExBoxPacker.SimpleBox
-  alias ExBoxPacker.Test.THPackTestItem
+  alias ExBoxPacker.Test.THPack
 
   @data_dir Path.join(__DIR__, "../support/data")
+
+  # Problems where the port does not reproduce BoxPacker's recorded utilisation. Bischoff
+  # #10-30 gets 83.4 against BoxPacker's 83.7, and did before the 4.3.0 port as well. It traces
+  # to the look-ahead cache key in OrientatedItemSorter, which includes the remaining-item count
+  # that BoxPacker's key leaves out.
+  @known_mismatches ["Bischoff #10-30"]
 
   # --- expected values ------------------------------------------------------
 
@@ -88,18 +95,18 @@ defmodule ExBoxPacker.PublishedTestCasesTest do
     [id, w, wv, l, lv, d, dv, qty] =
       line |> String.split(" ", trim: true)
 
-    item = %THPackTestItem{
-      description: "Item #{id}",
-      width: String.to_integer(w),
-      width_allowed_vertical: bool(wv),
-      length: String.to_integer(l),
-      length_allowed_vertical: bool(lv),
-      depth: String.to_integer(d),
-      depth_allowed_vertical: bool(dv),
-      quantity: String.to_integer(qty)
-    }
+    item =
+      THPack.new_item(
+        "Item #{id}",
+        String.to_integer(w),
+        bool(wv),
+        String.to_integer(l),
+        bool(lv),
+        String.to_integer(d),
+        bool(dv)
+      )
 
-    List.duplicate(item, item.quantity)
+    List.duplicate(item, String.to_integer(qty))
   end
 
   # PHP casts the string flag to bool: "0" -> false, anything else (e.g. "1") -> true.
@@ -154,8 +161,7 @@ defmodule ExBoxPacker.PublishedTestCasesTest do
       end)
     end
 
-    # Report fidelity; do not fail the suite on divergence (characterization test).
     assert total == 715
-    assert matches >= 0
+    assert Enum.map(mismatches, fn {label, _e, _a, _ok?} -> label end) == @known_mismatches
   end
 end

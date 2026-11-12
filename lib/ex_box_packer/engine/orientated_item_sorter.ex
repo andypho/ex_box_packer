@@ -3,6 +3,8 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
 
   import ExBoxPacker.Sorting.ItemSorter, only: [cmp: 2]
 
+  alias ExBoxPacker.Boolean
+
   alias ExBoxPacker.Engine.{
     Cache,
     OrientatedItem,
@@ -12,9 +14,17 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
   }
 
   # Look-ahead simulation caps the number of following items considered, matching
-  # BoxPacker's `topN(8)` to keep the recursive partial pack bounded.
-  @lookahead_item_cap 8
+  # BoxPacker's `topN(7)` to keep the recursive partial pack bounded.
+  @lookahead_item_cap 7
   @lookahead_max_weight 1_000_000_000
+
+  # Max (smallest / largest) edge ratio for an item to be treated as slab-like: at or below
+  # this, BestFit scoring prefers the thin edge as depth (KeepFlat-style).
+  @slab_aspect_ratio 0.3
+
+  # The same-size tessellation decider only applies while at least this many same-size
+  # items (including the current one) are still to place.
+  @min_same_size_items 2
 
   @spec compare(OrientatedItem.t(), OrientatedItem.t(), map()) :: -1 | 0 | 1
   def compare(%OrientatedItem{} = a, %OrientatedItem{} = b, ctx) do
@@ -23,7 +33,9 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
     with 0 <- exact_fit_decider(wl - a.width, wl - b.width),
          0 <- exact_fit_decider(ll - a.length, ll - b.length),
          0 <- exact_fit_decider(dl - a.depth, dl - b.depth),
-         0 <- look_ahead_decider(a, b, wl - a.width, wl - b.width, ctx) do
+         0 <- same_size_items_decider(a, b, ctx),
+         0 <- look_ahead_decider(a, b, wl - a.width, wl - b.width, ctx),
+         0 <- slab_decider(a, b) do
       a_min_gap = min(wl - a.width, ll - a.length)
       b_min_gap = min(wl - b.width, ll - b.length)
 
@@ -35,7 +47,64 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
   end
 
   @spec sort([OrientatedItem.t()], map()) :: [OrientatedItem.t()]
-  def sort(orientations, ctx), do: Enum.sort(orientations, &(compare(&1, &2, ctx) <= 0))
+  def sort([], _ctx), do: []
+
+  def sort([first | _] = orientations, ctx) do
+    # Every orientation belongs to the same item, so the same-size check is computed once per
+    # sort (BoxPacker caches it per sorter instance).
+    ctx = Map.put(ctx, :same_size_count, same_size_count(first.item, ctx.next_items))
+    Enum.sort(orientations, &(compare(&1, &2, ctx) <= 0))
+  end
+
+  # When every remaining item is the same size as this one, prefer the orientation that fits
+  # more of them into the free space on a regular grid (simple arithmetic, not a pack).
+  defp same_size_items_decider(a, b, ctx) do
+    case Map.get_lazy(ctx, :same_size_count, fn -> same_size_count(a.item, ctx.next_items) end) do
+      nil ->
+        0
+
+      remaining ->
+        fit_a = how_many_fit(a, ctx)
+        fit_b = how_many_fit(b, ctx)
+
+        case cmp(covers(fit_b, remaining), covers(fit_a, remaining)) do
+          0 -> cmp(fit_b, fit_a)
+          covers_decider -> covers_decider
+        end
+    end
+  end
+
+  # Number of same-size items still to place (including the current one), or nil when the
+  # decider does not apply (a differently-sized item remains, or too few are left).
+  defp same_size_count(item, next_items) do
+    remaining = length(next_items) + 1
+
+    if remaining >= @min_same_size_items and
+         Enum.all?(next_items, &(&1.sorted_dims == item.sorted_dims)),
+       do: remaining
+  end
+
+  defp covers(fit, remaining) when fit >= remaining, do: 1
+  defp covers(_fit, _remaining), do: 0
+
+  defp how_many_fit(%OrientatedItem{width: w, length: l, depth: d}, _ctx)
+       when w <= 0 or l <= 0 or d <= 0,
+       do: 0
+
+  defp how_many_fit(%OrientatedItem{width: w, length: l, depth: d}, ctx),
+    do: div(ctx.width_left, w) * div(ctx.length_left, l) * div(ctx.depth_left, d)
+
+  # For slab-like BestFit items (one edge much shorter than the longest), prefer the
+  # orientation with the thin edge as depth.
+  defp slab_decider(
+         %OrientatedItem{item: %{rotation: :best_fit, sorted_dims: [thin, _, longest]}} = a,
+         b
+       )
+       when longest != 0 and thin / longest <= @slab_aspect_ratio do
+    cmp(Boolean.to_integer(b.depth == thin), Boolean.to_integer(a.depth == thin))
+  end
+
+  defp slab_decider(_a, _b), do: 0
 
   # Prefer an orientation that still leaves room for the next item(s). Cheap check first:
   # does the next item fit at all after `a` vs `b`. When that ties, run the partial packing
@@ -68,7 +137,7 @@ defmodule ExBoxPacker.Engine.OrientatedItemSorter do
   end
 
   # BoxPacker's `calculateAdditionalItemsPackedWithThisOrientation`: single-pass pack of the
-  # next (<= 8) items into (a) the remaining current-row width and (b) the remaining rows,
+  # next (<= 7) items into (a) the remaining current-row width and (b) the remaining rows,
   # counting how many fit. A higher count is better. Returns 0 in single-pass mode so the
   # recursive `VolumePacker.pack(..., single_pass?: true)` cannot re-enter this simulation
   # (guarantees termination).
